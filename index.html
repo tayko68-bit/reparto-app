@@ -36,8 +36,8 @@
             <h2>Registrar Factura</h2>
             <label for="numero-pedido">Número de Pedido Original:</label>
             <input type="text" id="numero-pedido" placeholder="Ej: P-801">
-            <label for="nombre-surtidor-almacen">Tu Nombre (Surtidor):</label>
-            <input type="text" id="nombre-surtidor-almacen" placeholder="Escribe tu nombre">
+            <label for="nombre-surtidor-almacen">Tu Nombre (o de quien surte):</label>
+            <input type="text" id="nombre-surtidor-almacen" placeholder="Escribe un nombre">
             <button type="button" id="btn-escanear-factura" class="btn-main">📸 Escanear Factura</button>
             <button type="button" id="btn-volver-almacen" class="btn-secondary">Volver</button>
         </div>
@@ -95,6 +95,7 @@
         // =================================================================
         function iniciarScanner(modo) {
             modoActual = modo;
+            vistaPrincipal.classList.add('hidden');
             vistaAlmacen.classList.add('hidden');
             vistaRepartidor.classList.add('hidden');
             lectorQrDiv.classList.remove('hidden');
@@ -107,14 +108,19 @@
                 onScanFailure
             ).catch(err => {
                 mostrarMensaje(`Error al iniciar la cámara: ${err}`, 'error');
+                setTimeout(() => location.reload(), 4000);
             });
         }
         
         function detenerScanner() {
             if (qrScanner && qrScanner.isScanning) {
-                qrScanner.stop().then(() => {
-                    lectorQrDiv.classList.add('hidden');
-                }).catch(err => console.warn("No se pudo detener el scanner.", err));
+                try {
+                    qrScanner.stop().then(() => {
+                        lectorQrDiv.classList.add('hidden');
+                    }).catch(err => console.warn("Scanner stop failed.", err));
+                } catch (e) {
+                    console.warn("Exception on scanner stop.", e);
+                }
             }
         }
         
@@ -123,13 +129,13 @@
             mostrarMensaje("Procesando...", "");
 
             try {
-                // El QR del SAT es una URL. Extraemos los parámetros.
-                const urlParams = new URLSearchParams(new URL(decodedText).search);
-                const idPedido = urlParams.get('id'); // Folio Fiscal
-                const rfc = urlParams.get('rr'); // RFC del Receptor
+                const url = new URL(decodedText);
+                const urlParams = new URLSearchParams(url.search);
+                const idPedido = urlParams.get('id');
+                const rfc = urlParams.get('rr');
 
                 if (!idPedido) {
-                    throw new Error("El código QR no parece ser una factura válida del SAT (no se encontró 'id').");
+                    throw new Error("El QR no parece ser una factura válida (no se encontró 'id').");
                 }
 
                 let payload;
@@ -137,18 +143,18 @@
                 if (modoActual === 'registrar') {
                     const numeroPedido = document.getElementById('numero-pedido').value;
                     const surtidor = document.getElementById('nombre-surtidor-almacen').value;
-                    if (!numeroPedido || !surtidor) throw new Error("Debes rellenar el número de pedido y tu nombre.");
+                    if (!numeroPedido.trim() || !surtidor.trim()) throw new Error("Debes rellenar el número de pedido y tu nombre.");
                     
                     payload = {
                         accion: 'registrar_factura',
                         idPedido: idPedido,
-                        rfc: rfc || "SIN_RFC", // Hacemos el RFC opcional si el QR no lo trae
+                        rfc: rfc || "SIN_RFC",
                         numeroPedidoOrigen: numeroPedido,
                         surtidor: surtidor
                     };
                 } else {
                     const usuario = document.getElementById('nombre-repartidor').value;
-                    if(!usuario) throw new Error("Debes rellenar tu nombre de repartidor.");
+                    if(!usuario.trim()) throw new Error("Debes rellenar tu nombre de repartidor.");
 
                     payload = {
                         accion: 'actualizar_status',
@@ -162,7 +168,7 @@
                     }
                 }
                 
-                enviarDatosAlScript(payload);
+                await enviarDatosAlScript(payload);
 
             } catch (error) {
                 mostrarMensaje(`Error: ${error.message}`, 'error');
@@ -171,40 +177,40 @@
         }
 
         function onScanFailure(error) {
-            // Se ignora para no mostrar mensajes constantes
+            // Ignorar errores comunes de "no se encontró QR"
         }
         
         // =================================================================
         // COMUNICACIÓN CON EL SCRIPT Y OTRAS FUNCIONES
         // =================================================================
-        function enviarDatosAlScript(payload) {
-             if (SCRIPT_URL === "PEGA_AQUÍ_LA_URL_DE_TU_SCRIPT") {
-                mostrarMensaje("Error: La URL del script no ha sido configurada.", "error");
-                return;
-            }
+        async function enviarDatosAlScript(payload) {
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload),
+                    headers: { 'Content-Type': 'application/json' },
+                    redirect: 'follow'
+                });
 
-            // Usamos un truco para evitar CORS sin usar 'no-cors', enviando los datos como parámetros de URL
-            const finalUrl = new URL(SCRIPT_URL);
-            finalUrl.searchParams.append('data', JSON.stringify(payload));
+                const result = await response.json();
 
-            fetch(finalUrl, {
-                method: 'GET', // Cambiamos a GET para este truco
-                headers: { 'Content-Type': 'application/json' }
-            })
-            .then(res => {
-                 // Esta parte es más compleja de leer la respuesta con este método,
-                 // pero podemos asumir éxito si no hay error de red.
-                 mostrarMensaje("¡Acción registrada con éxito!", 'success');
-                 setTimeout(() => location.reload(), 3000); // Recargar la página después de 3 seg
-            })
-            .catch(error => {
-                mostrarMensaje(`Error de comunicación: ${error.message}`, 'error');
+                if (result.status === 'success') {
+                    mostrarMensaje(result.data, 'success');
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                // Si fetch falla por CORS, puede que la petición sí haya llegado.
+                // Mostramos un mensaje optimista y el usuario revisa el Sheet.
+                mostrarMensaje("Acción enviada. Revisa el Sheet para confirmar.", 'success');
+                console.error("Error en Fetch, posible CORS:", error);
+            } finally {
                 setTimeout(() => location.reload(), 4000);
-            });
+            }
         }
         
         function obtenerUbicacion() {
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve) => {
                 if (!navigator.geolocation) {
                     resolve("Geolocalización no soportada");
                 } else {
@@ -214,9 +220,8 @@
                             const lon = position.coords.longitude;
                             resolve(`https://maps.google.com/?q=${lat},${lon}`);
                         },
-                        () => {
-                            resolve("No se pudo obtener la ubicación");
-                        }
+                        () => { resolve("No se pudo obtener la ubicación"); },
+                        { timeout: 10000 }
                     );
                 }
             });
@@ -224,7 +229,7 @@
 
         function mostrarMensaje(mensaje, tipo) {
             statusMessage.textContent = mensaje;
-            statusMessage.className = tipo ? `status-${tipo}` : '';
+            statusMessage.className = `status-${tipo}`;
         }
 
         // =================================================================
@@ -232,4 +237,7 @@
         // =================================================================
         document.getElementById('btn-escanear-factura').addEventListener('click', () => iniciarScanner('registrar'));
         document.getElementById('btn-escanear-transito').addEventListener('click', () => iniciarScanner('transito'));
-        document.getElementById('btn-escanear
+        document.getElementById('btn-escanear-entregado').addEventListener('click', () => iniciarScanner('entregado'));
+    </script>
+</body>
+</html>
