@@ -56,7 +56,7 @@
 
     </div>
 
-    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     
     <script>
         // =================================================================
@@ -200,10 +200,8 @@
                     throw new Error(result.message);
                 }
             } catch (error) {
-                // Si fetch falla por CORS, puede que la petición sí haya llegado.
-                // Mostramos un mensaje optimista y el usuario revisa el Sheet.
-                mostrarMensaje("Acción enviada. Revisa el Sheet para confirmar.", 'success');
-                console.error("Error en Fetch, posible CORS:", error);
+                mostrarMensaje("Error al procesar. Revisa la consola para más detalles.", 'error');
+                console.error("Error en Fetch:", error);
             } finally {
                 setTimeout(() => location.reload(), 4000);
             }
@@ -218,7 +216,7 @@
                         (position) => {
                             const lat = position.coords.latitude;
                             const lon = position.coords.longitude;
-                            resolve(`https://maps.google.com/?q=${lat},${lon}`);
+                            resolve(`https://www.google.com/maps?q=${lat},${lon}`);
                         },
                         () => { resolve("No se pudo obtener la ubicación"); },
                         { timeout: 10000 }
