@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Reparto</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f9; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1, h2 { color: #444; text-align: center; }
+        button { display: block; width: 100%; padding: 15px; font-size: 18px; font-weight: bold; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; transition: background-color 0.3s; }
+        .btn-main { background-color: #007bff; }
+        .btn-main:hover { background-color: #0056b3; }
+        .btn-secondary { background-color: #6c757d; }
+        .btn-secondary:hover { background-color: #5a6268; }
+        input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
+        #lector-qr { width: 100%; border: 2px solid #ccc; border-radius: 8px; overflow: hidden; margin-top: 20px; }
+        .hidden { display: none; }
+        #status-message { text-align: center; margin-top: 20px; font-weight: bold; padding: 10px; border-radius: 5px; }
+        .status-success { background-color: #d4edda; color: #155724; }
+        .status-error { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Sistema de Reparto</h1>
+
+        <div id="vista-principal">
+            <h2>Selecciona tu Rol</h2>
+            <button id="btn-rol-almacen" class="btn-main">Jefe de Almacén</button>
+            <button id="btn-rol-repartidor" class="btn-secondary">Repartidor</button>
+        </div>
+
+        <div id="vista-almacen" class="hidden">
+            <h2>Registrar Factura</h2>
+            <label for="numero-pedido">Número de Pedido Original:</label>
+            <input type="text" id="numero-pedido" placeholder="Ej: P-801">
+            <label for="nombre-surtidor-almacen">Tu Nombre (Surtidor):</label>
+            <input type="text" id="nombre-surtidor-almacen" placeholder="Escribe tu nombre">
+            <button id="btn-escanear-factura" class="btn-main">📸 Escanear Factura</button>
+            <button id="btn-volver-almacen" class="btn-secondary">Volver</button>
+        </div>
+
+        <div id="vista-repartidor" class="hidden">
+            <h2>Actualizar Status</h2>
+             <label for="nombre-repartidor">Tu Nombre (Repartidor):</label>
+            <input type="text" id="nombre-repartidor" placeholder="Escribe tu nombre">
+            <button id="btn-escanear-transito" class="btn-main">🚚 Escanear para "En Tránsito"</button>
+            <button id="btn-escanear-entregado" class="btn-secondary">✅ Escanear para "Entregado"</button>
+            <button id="btn-volver-repartidor" class="btn-secondary">Volver</button>
+        </div>
+        
+        <div id="lector-qr" class="hidden"></div>
+        <div id="status-message"></div>
+
+    </div>
+
+    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+    
+    <script>
+        // =================================================================
+        // CONFIGURACIÓN
+        // =================================================================
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyAqMuAU0vtAccSTTqpcnXpGQkr_xv3O2lNNHmwXH4xIVTwcncZXxk044eRp64TOgD0g/exec";
+
+        // =================================================================
+        // VARIABLES GLOBALES Y ELEMENTOS DEL DOM
+        // =================================================================
+        let qrScanner;
+        let modoActual = null; // 'registrar', 'transito', 'entregado'
+
+        const vistaPrincipal = document.getElementById('vista-principal');
+        const vistaAlmacen = document.getElementById('vista-almacen');
+        const vistaRepartidor = document.getElementById('vista-repartidor');
+        const lectorQrDiv = document.getElementById('lector-qr');
+        const statusMessage = document.getElementById('status-message');
+
+        // =================================================================
+        // NAVEGACIÓN ENTRE VISTAS
+        // =================================================================
+        document.getElementById('btn-rol-almacen').addEventListener('click', () => {
+            vistaPrincipal.classList.add('hidden');
+            vistaAlmacen.classList.remove('hidden');
+        });
+        document.getElementById('btn-rol-repartidor').addEventListener('click', () => {
+            vistaPrincipal.classList.add('hidden');
+            vistaRepartidor.classList.remove('hidden');
+        });
+        document.getElementById('btn-volver-almacen').addEventListener('click', () => location.reload());
+        document.getElementById('btn-volver-repartidor').addEventListener('click', () => location.reload());
+
+        // =================================================================
+        // LÓGICA DEL ESCÁNER
+        // =================================================================
+        function iniciarScanner(modo) {
+            modoActual = modo;
+            vistaAlmacen.classList.add('hidden');
+            vistaRepartidor.classList.add('hidden');
+            lectorQrDiv.classList.remove('hidden');
+            
+            qrScanner = new Html5Qrcode("lector-qr");
+            qrScanner.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                onScanSuccess,
+                onScanFailure
+            ).catch(err => {
+                mostrarMensaje(`Error al iniciar la cámara: ${err}`, 'error');
+            });
+        }
+        
+        function detenerScanner() {
+            if (qrScanner && qrScanner.isScanning) {
+                qrScanner.stop().then(() => {
+                    lectorQrDiv.classList.add('hidden');
+                }).catch(err => console.warn("No se pudo detener el scanner.", err));
+            }
+        }
+        
+        async function onScanSuccess(decodedText, decodedResult) {
+            detenerScanner();
+            mostrarMensaje("Procesando...", "");
+
+            try {
+                // El QR del SAT es una URL. Extraemos los parámetros.
+                const urlParams = new URLSearchParams(new URL(decodedText).search);
+                const idPedido = urlParams.get('id'); // Folio Fiscal
+                const rfc = urlParams.get('rr'); // RFC del Receptor
+
+                if (!idPedido) {
+                    throw new Error("El código QR no parece ser una factura válida del SAT (no se encontró 'id').");
+                }
+
+                let payload;
+
+                if (modoActual === 'registrar') {
+                    const numeroPedido = document.getElementById('numero-pedido').value;
+                    const surtidor = document.getElementById('nombre-surtidor-almacen').value;
+                    if (!numeroPedido || !surtidor) throw new Error("Debes rellenar el número de pedido y tu nombre.");
+                    
+                    payload = {
+                        accion: 'registrar_factura',
+                        idPedido: idPedido,
+                        rfc: rfc || "SIN_RFC", // Hacemos el RFC opcional si el QR no lo trae
+                        numeroPedidoOrigen: numeroPedido,
+                        surtidor: surtidor
+                    };
+                } else {
+                    const usuario = document.getElementById('nombre-repartidor').value;
+                    if(!usuario) throw new Error("Debes rellenar tu nombre de repartidor.");
+
+                    payload = {
+                        accion: 'actualizar_status',
+                        idPedido: idPedido,
+                        nuevoStatus: modoActual === 'transito' ? 'En Tránsito' : 'Entregado',
+                        usuario: usuario
+                    };
+
+                    if (modoActual === 'entregado') {
+                        payload.ubicacion = await obtenerUbicacion();
+                    }
+                }
+                
+                enviarDatosAlScript(payload);
+
+            } catch (error) {
+                mostrarMensaje(`Error: ${error.message}`, 'error');
+                setTimeout(() => location.reload(), 4000);
+            }
+        }
+
+        function onScanFailure(error) {
+            // Se ignora para no mostrar mensajes constantes
+        }
+        
+        // =================================================================
+        // COMUNICACIÓN CON EL SCRIPT Y OTRAS FUNCIONES
+        // =================================================================
+        function enviarDatosAlScript(payload) {
+             if (SCRIPT_URL === "PEGA_AQUÍ_LA_URL_DE_TU_SCRIPT") {
+                mostrarMensaje("Error: La URL del script no ha sido configurada.", "error");
+                return;
+            }
+
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors', // Importante para evitar errores de CORS con Apps Script
+                body: JSON.stringify(payload),
+                headers: { 'Content-Type': 'application/json' }
+            })
+            // Como usamos no-cors, no podemos leer la respuesta. Confiamos en que todo salió bien.
+            // El script debe manejar los errores y nosotros veremos el resultado en el Sheet.
+            .then(() => {
+                 mostrarMensaje("¡Acción registrada con éxito!", 'success');
+                 setTimeout(() => location.reload(), 3000); // Recargar la página después de 3 seg
+            })
+            .catch(error => {
+                mostrarMensaje(`Error de comunicación: ${error.message}`, 'error');
+                setTimeout(() => location.reload(), 4000);
+            });
+        }
+        
+        function obtenerUbicacion() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    resolve("Geolocalización no soportada");
+                } else {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const lat = position.coords.latitude;
+                            const lon = position.coords.longitude;
+                            resolve(`https://www.google.com/maps?q=${lat},${lon}`);
+                        },
+                        () => {
+                            resolve("No se pudo obtener la ubicación");
+                        }
+                    );
+                }
+            });
+        }
+
+        function mostrarMensaje(mensaje, tipo) {
+            statusMessage.textContent = mensaje;
+            statusMessage.className = tipo ? `status-${tipo}` : '';
+        }
+
+        // =================================================================
+        // ASIGNAR EVENTOS A LOS BOTONES
+        // =================================================================
+        document.getElementById('btn-escanear-factura').addEventListener('click', () => iniciarScanner('registrar'));
+        document.getElementById('btn-escanear-transito').addEventListener('click', () => iniciarScanner('transito'));
+        document.getElementById('btn-escanear-entregado').addEventListener('click', () => iniciarScanner('entregado'));
+
+    </script>
+</body>
+</html>
