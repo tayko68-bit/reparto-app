@@ -76,9 +76,6 @@
         document.getElementById('btn-volver-almacen').addEventListener('click', () => location.reload());
         document.getElementById('btn-volver-repartidor').addEventListener('click', () => location.reload());
         
-        // =================================================================
-        // LÓGICA DEL ESCÁNER (CON CONFIGURACIÓN DE ENFOQUE MEJORADA)
-        // =================================================================
         function iniciarScanner(modo) {
             modoActual = modo;
             vistaPrincipal.classList.add('hidden');
@@ -91,21 +88,21 @@
             const config = {
                 fps: 10,
                 qrbox: { width: 250, height: 250 },
-                videoConstraints: {
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 },
-                    focusMode: 'continuous' // Pide a la cámara que intente enfocar constantemente
-                }
+            };
+            
+            // ===== CAMBIO CLAVE AQUÍ =====
+            // Esta es una instrucción más estricta para forzar la cámara TRASERA.
+            const cameraConstraints = { 
+                facingMode: { exact: "environment" } 
             };
             
             qrScannerInstance.start(
-                { facingMode: "environment" },
-                config, // Usamos la nueva configuración
+                cameraConstraints, // Usamos la nueva restricción estricta
+                config,
                 onScanSuccess,
-                () => {} // Ignoramos fallos de escaneo momentáneos
+                () => {}
             ).catch(err => {
-                mostrarMensaje(`Error al iniciar cámara: ${err}. Intenta con una foto.`, 'error');
-                // Aquí podríamos mostrar el botón de Plan B si el scanner en vivo falla
+                mostrarMensaje(`Error al iniciar cámara: ${err}`, 'error');
             });
         }
         
@@ -142,7 +139,6 @@
                 
                 await enviarDatosAlScript(payload);
 
-
             } catch (error) {
                 mostrarMensaje(`Error: ${error.message}`, 'error');
                 setTimeout(() => location.reload(), 4000);
@@ -169,7 +165,7 @@
             return new Promise(resolve => {
                 if (!navigator.geolocation) return resolve("Geolocalización no soportada");
                 navigator.geolocation.getCurrentPosition(
-                    p => resolve(`http://googleusercontent.com/maps.google.com/5{p.coords.latitude},${p.coords.longitude}`),
+                    p => resolve(`http://googleusercontent.com/maps.google.com/6{p.coords.latitude},${p.coords.longitude}`),
                     () => resolve("No se pudo obtener la ubicación"),
                     { timeout: 10000 }
                 );
