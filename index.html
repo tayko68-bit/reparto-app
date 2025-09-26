@@ -106,11 +106,7 @@
         // LÓGICA DEL ESCÁNER
         function iniciarScanner() {
             cambiarVista('lector-container');
-            estado.qrScanner = new QrScanner(
-                videoElement,
-                result => onScanSuccess(result.data),
-                { highlightScanRegion: true, onDecodeError: (error) => { /* Ignorar errores continuos */ } }
-            );
+            estado.qrScanner = new QrScanner(videoElement, result => onScanSuccess(result.data), { highlightScanRegion: true });
             estado.qrScanner.start().catch(err => mostrarMensaje(`Error al iniciar cámara: ${err}`, 'error'));
         }
         function detenerScanner() {
@@ -143,15 +139,14 @@
                     estado.datosPendientes.repartidor = repartidor;
                     estado.datosPendientes.ubicacion = await obtenerUbicacion();
                 }
-                await enviarDatos({ accion: 'consultar_factura', idPedido, rfc: estado.datosPendientes.rfc });
 
+                await enviarDatos({ accion: 'consultar_factura', idPedido, rfc: estado.datosPendientes.rfc });
             } catch (error) {
-                mostrarMensaje(`Error: ${error.message}`, 'error');
-                setTimeout(() => location.reload(), 3000);
+                mostrarMensaje(`Error: ${error.message}. La página se recargará.`, 'error');
+                setTimeout(() => location.reload(), 30000); // AUMENTAMOS TIEMPO A 30 SEGUNDOS
             }
         }
         
-        // MANEJO DE RESPUESTAS DEL SCRIPT
         function manejarRespuesta(result) {
             if (estado.modulo === 'almacen') {
                 if (result.status === "NO_REGISTRADO") mostrarConfirmacionAlmacen(result.cliente);
@@ -162,7 +157,6 @@
             }
         }
 
-        // LÓGICA DE PANTALLAS
         function mostrarConfirmacionAlmacen(cliente) {
             document.getElementById('conf-cliente').textContent = cliente['Razón Social'] || 'N/A';
             document.getElementById('conf-direccion').textContent = `${cliente.Calle || ''} ${cliente['Num ext.'] || ''}, ${cliente.Colonia || ''}`.trim();
@@ -178,7 +172,7 @@
             statusSpan.className = 'status-tag status-' + (pedido.Status_Actual || "").replace(/\s+/g, '.');
 
             const accionesDiv = document.getElementById('acciones-repartidor');
-            accionesDiv.innerHTML = ''; // Limpiar
+            accionesDiv.innerHTML = '';
 
             const status = pedido.Status_Actual;
             if (status === 'Facturado' || status === 'En Almacén (Devolución)') {
@@ -198,7 +192,6 @@
             cambiarVista('vista-repartidor-accion');
         }
         
-        // EVENTOS DE BOTONES DE ACCIÓN
         document.getElementById('btn-escanear-factura').addEventListener('click', iniciarScanner);
         document.getElementById('btn-escanear-repartidor').addEventListener('click', iniciarScanner);
         
@@ -230,7 +223,6 @@
             });
         }
 
-        // COMUNICACIÓN CENTRALIZADA
         async function enviarDatos(payload) {
             mostrarMensaje("Enviando datos...", "");
             const urlConDatos = new URL(SCRIPT_URL);
@@ -242,15 +234,15 @@
                 if (payload.accion === 'consultar_factura') manejarRespuesta(result.data);
                 else {
                     mostrarMensaje(result.data, 'success');
-                    setTimeout(() => location.reload(), 3000);
+                    setTimeout(() => location.reload(), 4000);
                 }
             } catch (error) {
-                mostrarMensaje(`Error de comunicación: ${error.message}`, 'error');
-                setTimeout(() => location.reload(), 3000);
+                mostrarMensaje(`Error de comunicación: ${error.message}. La página se recargará.`, 'error');
+                console.error("Error en Fetch:", error);
+                setTimeout(() => location.reload(), 30000); // AUMENTAMOS TIEMPO A 30 SEGUNDOS
             }
         }
 
-        // FUNCIONES DE UTILIDAD
         function obtenerUbicacion() {
             return new Promise(resolve => {
                 if (!navigator.geolocation) return resolve("Geolocalización no soportada");
