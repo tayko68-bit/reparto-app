@@ -85,178 +85,208 @@
             <button type="button" id="btn-confirmar-fallo" class="btn-confirm">Confirmar Fallo</button>
             <button type="button" class="btn-cancel btn-volver">Cancelar</button>
         </div>
+
         <div id="lector-container" class="hidden"><video id="lector-qr"></video></div>
         <div class="status-message"></div>
     </div>
-
+    
     <script>
-        // CÓDIGO DE LA LIBRERÍA QR-SCANNER (VERSIÓN 1.4.2) PEGADO DIRECTAMENTE AQUÍ
-        // Esto evita la dependencia externa y soluciona el problema de la pantalla gris.
-        var QrScanner=function(){"use strict";function e(e,t){return e.call(t)}function t(e,t){for(var r=[],i=e;i<t;i++)r.push(i);return r}function r(e,t,r,i){for(var n,a=[],o=0,s=0,h=r.length,l=i.length;o<h&&s<l;){var c=r[o],u=i[s];c<u?(a.push(n={value:c,type:1}),o++):c>u?(a.push(n={value:u,type:2}),s++):(a.push(n={value:c,type:3}),o++,s++)}for(;o<h;)a.push({value:r[o++],type:1});for(;s<l;)a.push({value:i[s++],type:2});return e(t,n)}var i="function"==typeof DOMException;function n(e,t){return i&&e instanceof DOMException&&e.name===t}var a={};function o(e){return a[e]||(a[e]=e.replace(/-(.)/g,function(e,t){return t.toUpperCase()}))}var s={};function h(e,t,r){s[e]||(s[e]=new URL(e,location.href).href);var i=document.createElement("script");i.src=s[e],t&&(i.onload=t),r&&(i.onerror=r),document.head.appendChild(i)}var l={};function c(e,t){var r;if(l[e])return(r=l[e]).closed?l[e]=t():r:l[e]=t()}var u={};function d(e,t,r){return u[e]||(u[e]=new Worker(e)),new Promise(function(i,n){var a;u[e].addEventListener("message",a=function(t){u[e].removeEventListener("message",a),i(t.data)}),u[e].addEventListener("error",n),u[e].postMessage(t,r)})}function f(e){return new Promise(function(t,r){var i=new FileReader;i.onload=function(){return t(i.result)},i.onerror=r,i.readAsDataURL(e)})}function g(e){return new Promise(function(t,r){var i=new Image;i.onload=function(){return t(i)},i.onerror=r,i.src=e})}function p(e){var r=(e=e||"").match(/^(?:([a-z]+):)?(\/{0,3})(?:([a-z0-9_.-]+)(?::([a-z0-9_.-]+))?@)?([a-z0-9.-]+|\[[a-f0-9:]+\])(?::([0-9]+))?((?:\/[^?#]*)*)(\?[^#]*)?(#.*)?/i)||[],i={};for(var n in p.keys)i[p.keys[n]]=r[n]||"";return i}p.keys=["url","scheme","slash","user","pass","host","port","path","query","hash"];var v="qr-scanner-worker.min.js";function m(e){var t=e.getContext("2d",{alpha:!1,willReadFrequently:!0});return function(r,i,n,a,o,s,h){return t.clearRect(0,0,e.width,e.height),t.drawImage(r,i,n,a,o,s,h,e.width,e.height)}}function y(e,r,i){var n=i.has(e)?[].concat(i.get(e)):[],a=i.has(r)?[].concat(i.get(r)):[];i.set(e,n.concat(a)),t(0,a.length).forEach(function(e){var t=a[e],o=[].concat(i.get(t));i.set(t,o.concat(n))})}function b(e,r){var i,n=new Set([e]),a=new Set(n),o=new Map;for(o.set(e,null);0!==n.size;){var s,h=n;n=new Set,h.forEach(function(e){var t,h,l;s=e,(t=r).has(s)?(h=new Set,l=new Set([s]),t.get(s).forEach(function e(t){l.has(t)||(l.add(t),h.add(t),t in i||i.get(t).forEach(e))}),h):h=new Set,e=h,a.forEach(function(t){return e["delete"](t)}),e.forEach(function(e){a.add(e),o.set(e,s),n.add(e)})})}return o}return function(){function i(e,t,r,i){var n=this;this.$video=e,this.$canvas=document.createElement("canvas"),this._onDecode=t,this._legacyCanvasSize=i.calculateScanRegion,this._preferredCamera="environment",this._flashOn=!1,this._paused=!1,"object"!=typeof r?r={onDecodeError:r,calculateScanRegion:i,preferredCamera:r}:(this._onDecodeError=r.onDecodeError||t,this._calculateScanRegion=r.calculateScanRegion||i,this._preferredCamera=r.preferredCamera||this._preferredCamera),this._scanRegion=this._calculateScanRegion(e),this._onPlay=this._onPlay.bind(this),this._onLoadedMetaData=this._onLoadedMetaData.bind(this),this._onVisibilityChange=this._onVisibilityChange.bind(this),this._onEvent=function(t,r){n._onDecodeError(r,t.label),t.has(n._scanRegion.x,n._scanRegion.y,n._scanRegion.width,n._scanRegion.height)&&n._onDecode(t.data)},e.disablePictureInPicture=!0,e.addEventListener("play",this._onPlay),e.addEventListener("loadedmetadata",this._onLoadedMetaData),document.addEventListener("visibilitychange",this._onVisibilityChange),this._updateOverlay()}return i.setGrayscaleWeights=function(e){return d(v,{type:"set-grayscale-weights",data:e})},i.setInversionMode=function(e){return d(v,{type:"set-inversion-mode",data:e})},i.createQrEngine=function(e){return"string"==typeof e?d(v,{type:"create-qr-engine",data:e}):Promise.resolve(e)},i.hasCamera=function(){return i.listCameras(!0).then(function(e){return 0<e.length})},i.listCameras=function(e){if(e)return navigator.mediaDevices.enumerateDevices().then(function(e){return e.filter(function(e){return"videoinput"===e.kind})});var t=function(e,t){var i={},n={},a=[],o=new Map;return t.forEach(function(e,t){var r,s,h=e.label,l=e.deviceId;i[l]?i[l].push(h):(i[l]=[h],a.push(l)),h in n?(r=n[h],s=o.has(r)?o.get(r):new Set,o.set(r,s.add(l))):n[h]=l}),Promise.all(a.map(function(e){return navigator.mediaDevices.getUserMedia({video:{deviceId:{exact:e}}}).then(function(t){t.getTracks().forEach(function(e){return e.stop()})})})).then(function(){var e=function(e,t,i){var n={},a=new Set;for(var o in i)a.add(i[o]);var s=new Set(a),h=new Map;for(a.forEach(function(e){return h.set(e,new Set([e]))});s.size;){var l=s;s=new Set,l.forEach(function(i){var n=t.get(i);e.get(i).forEach(function(e){h.get(i).add(e),n.forEach(function(e){return h.get(e).add(i)})}),n.forEach(function(e){return s.add(e)})})}return r(function(e,r){var i,n;i={},n=new Map,r.forEach(function(e){return n.set(e,[])}),e.forEach(function(e,a){var o=t.get(a);n.has(o)&&n.get(o).push(e.label)}),n.forEach(function(e,t){var r=i[t]=[];e.sort().forEach(function(e){return-1===r.indexOf(e)&&r.push(e)})}),i},{},new Map)},i=a.reduce(function(t,r){return y(r,e[r],i),t.add(e[r]),t},new Set),n=a.reduce(function(r,n){return t(0,i[n].length).forEach(function(t){var o;y((o=i[n][t])in e?e[o]:"__unlabeled__",n,r)}),r},new Map);return b(i,n)},t={};return Promise.all(Object.keys(e).map(function(r){return navigator.mediaDevices.getUserMedia({video:{deviceId:{exact:r}}}).then(function(i){var n,a=i.getVideoTracks()[0].getCapabilities();if(t[r]=a,e[r].some(function(e){return""!==e}))return n=e[r].join("|"),a.facingMode?Promise.resolve(a.facingMode.map(function(e){return{exact:e,label:n}})):Promise.resolve([{label:n}])}))})).then(function(e){var r=e.reduce(function(e,t){return e.concat(t)},[]);return function(e,t){var i=function(e){var t=e.reduce(function(e,t){return e[t.label]=t.label in e?e[t.label].concat(t.exact):[t.exact],e},{});return Object.keys(t).map(function(e){return{label:e,exact:t[e]}})}(e).sort(function(e,t){return e.label.localeCompare(t.label)}).reduce(function(e,r){var n,a,o=r.label,s=r.exact,h="camera-style-label"in t?o.replace(/\s*\([\s\S]*?\)$/,"").trim():o,l=e.find(function(e){return e.label===h});return l?((n=l.video.deviceId.exact).push.apply(n,s),a={},Object.keys(t).forEach(function(e){a[e]=t[e]}),a.deviceId=void 0,l.video=a):e.push({label:h,video:{deviceId:{exact:s}}}),e},[]).map(function(e){var r=Object.assign({},e);return delete r.video.deviceId,Object.assign(r,t)}),n=i.length;return t(0,n-1).map(function(e){return i.map(function(t){return Object.assign({},t,{label:1<n?t.label+" "+(e+1):t.label})})})}(r,t)}(t,r)})});return navigator.mediaDevices.enumerateDevices().then(function(e){return i.listCameras(!1,e)})},i.prototype.start=function(){var e=this;return this._stop(),this._paused=!1,this._off=c("camera-stream",function(){var t,r="environment"===e._preferredCamera||"user"===e._preferredCamera?Promise.resolve(e._preferredCamera):i.listCameras().then(function(t){var r=t.find(function(t){return t.label===e._preferredCamera});return r?Promise.resolve(r.video.deviceId.exact):Promise.reject("Camera not found.")}).then(function(e){return"string"==typeof e?{exact:e}:1<e.length?{any:e}:void 0});return Promise.resolve(r).then(function(r){return navigator.mediaDevices.getUserMedia({audio:!1,video:((t={facingMode:r})||{}).facingMode?t:{deviceId:t}}).catch(function(t){if(r&&!n(t,"NotFoundError"))throw t;return i.listCameras(!0).then(function(t){var i,n=t.find(function(t){var i,n,a;return("environment"===e._preferredCamera?"back":"front")===(i="string"==typeof(n=t.label)?n.toLowerCase():"",a=i.indexOf("back"),i.indexOf("front"),-1<a?i.substring(a-1,0):void 0)});if(n)return i=n.deviceId,navigator.mediaDevices.getUserMedia({audio:!1,video:{deviceId:{exact:i}}});var a=t[0];if(!a)throw new Error("No camera found.");return i=a.deviceId,navigator.mediaDevices.getUserMedia({audio:!1,video:{deviceId:{exact:i}}})})}).then(function(t){return e.$video.srcObject=t,e.$video.play(),t})})}),this._off.then(function(t){return e._stream=t}).catch(function(t){return e._off=null,Promise.reject(t)})},i.prototype.stop=function(){return this._paused=!0,this._stop()},i.prototype.destroy=function(){this.$video.removeEventListener("loadedmetadata",this._onLoadedMetaData),this.$video.removeEventListener("play",this._onPlay),document.removeEventListener("visibilitychange",this._onVisibilityChange),this.stop()},i.prototype.pause=function(e){this._paused=!0,e&&this.$video.pause()},i.prototype.setCamera=function(e){return this._preferredCamera=e,this.start()},Object.defineProperty(i.prototype,"hasFlash",{get:function(){var e=this.$video.srcObject;if(!e)return Promise.resolve(!1);var t=e.getVideoTracks()[0].getCapabilities();return Promise.resolve(!!t.torch||"zoom"in t&&t.zoom.max>t.zoom.min)},enumerable:!1,configurable:!0}),i.prototype.isFlashOn=function(){return this._flashOn},i.prototype.toggleFlash=function(){return this.setFlash(!this._flashOn)},i.prototype.setFlash=function(e){var t=this;return this.hasFlash.then(function(r){if(!r)return Promise.reject("No flash available");t._flashOn=e,t._off=c("camera-stream",function(){return t._stream.getVideoTracks()[0].applyConstraints({advanced:[{torch:e}]})}),t._off})},i.prototype.setGrayscaleWeights=function(e,t,r){return this.setGrayscaleWeights(e,t,r)},i.prototype.setInversionMode=function(e){return this.setInversionMode(e)},i.scanImage=function(e,t,r,n,a,o){var s,h,l,c;return c=null,s=n,l=!1,"string"==typeof e?g(e):Promise.resolve(e).then(function(e){if(e instanceof HTMLVideoElement||e instanceof HTMLImageElement){var t,r,i,n;n=e;try{t=n.naturalWidth||n.videoWidth,r=n.naturalHeight||n.videoHeight}catch(e){return Promise.reject("Image not ready")}if(s)i=s;else{var a=(i={}).width=t,o=i.height=r;i.x=0,i.y=0}var h=document.createElement("canvas");return h.width=t,h.height=r,h.getContext("2d",{alpha:!1,willReadFrequently:!0}).drawImage(e,0,0),Promise.all([Promise.resolve(h.getContext("2d",{alpha:!1,willReadFrequently:!0}).getImageData(i.x,i.y,i.width,i.height)),Promise.resolve(i)])}return e instanceof File?f(e).then(function(e){return i.scanImage(e,s,c,n,a,o)}):e instanceof URL?i.scanImage(e.href,s,c,n,a,o):e instanceof ImageData?Promise.all([Promise.resolve(e),Promise.resolve(s)]):e instanceof Blob?i.scanImage(new File([e],"image"),s,c,n,a,o):Promise.reject("Unsupported image type.")}).then(function(e){return s=e[0],h=e[1],(c=r||i.createQrEngine()).then(function(e){return d(v,{type:"decode",data:s,options:o},{transfer:[s.data.buffer]})}).then(function(e){if(null!==e)return Promise.resolve(e);var t=a||!1;return t||(l=!0,s.data.set(s.data.map(function(e){return 255-e})),d(v,{type:"decode",data:s,options:o},{transfer:[s.data.buffer]})}).then(function(e){if(null===e)return Promise.reject("QR code not found.");var t,r,n=e.points,o=Math.min(n[0].y,n[1].y,n[2].y),p=Math.max(n[0].y,n[1].y,n[2].y),m=Math.min(n[0].x,n[1].x,n[2].x),y=Math.max(n[0].x,n[1].x,n[2].x);return t=m,r=o,l&&(t=s.width-y,r=s.height-p),e.cornerPoints.forEach(function(e){e.x+=h.x,e.y+=h.y}),{data:e.data,cornerPoints:e.cornerPoints}})})},i.prototype._onPlay=function(){this._scanRegion=this._calculateScanRegion(this.$video),this._updateOverlay(),this._scanFrame()},i.prototype._onLoadedMetaData=function(){this._scanRegion=this._calculateScanRegion(this.$video),this._updateOverlay()},i.prototype._onVisibilityChange=function(){"hidden"===document.visibilityState?this.pause():this._paused||this.start()},i.prototype._calculateScanRegion=function(e){var t=Math.round(2/3*Math.min(e.videoWidth,e.videoHeight));return{x:Math.round((e.videoWidth-t)/2),y:Math.round((e.videoHeight-t)/2),width:t,height:t,downScaledWidth:400,downScaledHeight:400}},i.prototype._updateOverlay=function(){var e=this;requestAnimationFrame(function(){var t,r,i=e.$overlay;i&&(t=e.$video,r=e._scanRegion,(e=t.videoWidth/t.clientWidth)||(e=1),(i.style.width=t.videoWidth/e+"px",i.style.height=t.videoHeight/e+"px",i.style.top=t.offsetTop+"px",i.style.left=t.offsetLeft+"px",i.style.backgroundSize=t.clientWidth+"px "+t.clientHeight+"px",i.querySelectorAll("[data-corner], [data-laser]").forEach(function(i){var n=i.getAttribute("data-corner")||i.getAttribute("data-laser"),a=e*("down-left"===n||"down-right"===n?r.y+r.height:"up-left"===n||"up-right"===n?r.y:r.y+r.height/2)+"px",o=e*("up-right"===n||"down-right"===n?r.x+r.width:"up-left"===n||"down-left"===n?r.x:r.x)+"px";i.style.transform="translate("+o+", "+a+")"})))})},i.prototype._scanFrame=function(){var e=this;if(!this._paused&&this.$video.videoWidth){var t=this._legacyCanvasSize(this.$video);this.$canvas.width=t.downScaledWidth,this.$canvas.height=t.downScaledHeight;var r,i,n,a,o,s,h=m(this.$canvas);i=this.$video,(n=(r=t).x,a=r.y,o=r.width,s=r.height),h(i,n,a,o,s,0,0),d(v,{type:"detect",data:this.$canvas.getContext("2d",{alpha:!1,willReadFrequently:!0}).getImageData(0,0,this.$canvas.width,this.$canvas.height)},{transfer:[this.$canvas.getContext("2d",{alpha:!1,willReadFrequently:!0}).getImageData(0,0,this.$canvas.width,this.$canvas.height).data.buffer]}).then(function(t){t&&e._onEvent(t,e._onDecodeError)},function(t){e._onDecodeError(t,"Scanner error")}).then(function(){return e._scanFrame()})}},i.prototype._stop=function(){this._off&&(this._off.then(function(e){e.getTracks().forEach(function(e){return e.stop()})}),l.camera-stream=null,this._off=null,this._stream=null)},i}()}();
+    var QrScanner=function(){"use strict";function e(e,t){return e.call(t)}function t(e,t){for(var r=[],i=e;i<t;i++)r.push(i);return r}function r(e,t,r,i){for(var n,a=[],o=0,s=0,h=r.length,l=i.length;o<h&&s<l;){var c=r[o],u=i[s];c<u?(a.push(n={value:c,type:1}),o++):c>u?(a.push(n={value:u,type:2}),s++):(a.push(n={value:c,type:3}),o++,s++)}for(;o<h;)a.push({value:r[o++],type:1});for(;s<l;)a.push({value:i[s++],type:2});return e(t,n)}var i="function"==typeof DOMException;function n(e,t){return i&&e instanceof DOMException&&e.name===t}var a={};function o(e){return a[e]||(a[e]=e.replace(/-(.)/g,function(e,t){return t.toUpperCase()}))}var s={};function h(e,t,r){s[e]||(s[e]=new URL(e,location.href).href);var i=document.createElement("script");i.src=s[e],t&&(i.onload=t),r&&(i.onerror=r),document.head.appendChild(i)}var l={};function c(e,t){var r;if(l[e])return(r=l[e]).closed?l[e]=t():r:l[e]=t()}var u={};function d(e,t,r){return u[e]||(u[e]=new Worker(e)),new Promise(function(i,n){var a;u[e].addEventListener("message",a=function(t){u[e].removeEventListener("message",a),i(t.data)}),u[e].addEventListener("error",n),u[e].postMessage(t,r)})}function f(e){return new Promise(function(t,r){var i=new FileReader;i.onload=function(){return t(i.result)},i.onerror=r,i.readAsDataURL(e)})}function g(e){return new Promise(function(t,r){var i=new Image;i.onload=function(){return t(i)},i.onerror=r,i.src=e})}function p(e){var r=(e=e||"").match(/^(?:([a-z]+):)?(\/{0,3})(?:([a-z0-9_.-]+)(?::([a-z0-9_.-]+))?@)?([a-z0-9.-]+|\[[a-f0-9:]+\])(?::([0-9]+))?((?:\/[^?#]*)*)(\?[^#]*)?(#.*)?/i)||[],i={};for(var n in p.keys)i[p.keys[n]]=r[n]||"";return i}p.keys=["url","scheme","slash","user","pass","host","port","path","query","hash"];var v="qr-scanner-worker.min.js";function m(e){var t=e.getContext("2d",{alpha:!1,willReadFrequently:!0});return function(r,i,n,a,o,s,h){return t.clearRect(0,0,e.width,e.height),t.drawImage(r,i,n,a,o,s,h,e.width,e.height)}}function y(e,r,i){var n=i.has(e)?[].concat(i.get(e)):[],a=i.has(r)?[].concat(i.get(r)):[];i.set(e,n.concat(a)),t(0,a.length).forEach(function(e){var t=a[e],o=[].concat(i.get(t));i.set(t,o.concat(n))})}function b(e,r){var i,n=new Set([e]),a=new Set(n),o=new Map;for(o.set(e,null);0!==n.size;){var s,h=n;n=new Set,h.forEach(function(e){var t,h,l;s=e,(t=r).has(s)?(h=new Set,l=new Set([s]),t.get(s).forEach(function e(t){l.has(t)||(l.add(t),h.add(t),t in i||i.get(t).forEach(e))}),h):h=new Set,e=h,a.forEach(function(t){return e["delete"](t)}),e.forEach(function(e){a.add(e),o.set(e,s),n.add(e)})})}return o}return function(){function i(e,t,r,i){var n=this;this.$video=e,this.$canvas=document.createElement("canvas"),this._onDecode=t,this._legacyCanvasSize=i.calculateScanRegion,this._preferredCamera="environment",this._flashOn=!1,this._paused=!1,"object"!=typeof r?r={onDecodeError:r,calculateScanRegion:i,preferredCamera:r}:(this._onDecodeError=r.onDecodeError||t,this._calculateScanRegion=r.calculateScanRegion||i,this._preferredCamera=r.preferredCamera||this._preferredCamera),this._scanRegion=this._calculateScanRegion(e),this._onPlay=this._onPlay.bind(this),this._onLoadedMetaData=this._onLoadedMetaData.bind(this),this._onVisibilityChange=this._onVisibilityChange.bind(this),this._onEvent=function(t,r){n._onDecodeError(r,t.label),t.has(n._scanRegion.x,n._scanRegion.y,n._scanRegion.width,n._scanRegion.height)&&n._onDecode(t.data)},e.disablePictureInPicture=!0,e.addEventListener("play",this._onPlay),e.addEventListener("loadedmetadata",this._onLoadedMetaData),document.addEventListener("visibilitychange",this._onVisibilityChange),this._updateOverlay()}return i.setGrayscaleWeights=function(e){return d(v,{type:"set-grayscale-weights",data:e})},i.setInversionMode=function(e){return d(v,{type:"set-inversion-mode",data:e})},i.createQrEngine=function(e){return"string"==typeof e?d(v,{type:"create-qr-engine",data:e}):Promise.resolve(e)},i.hasCamera=function(){return i.listCameras(!0).then(function(e){return 0<e.length})},i.listCameras=function(e){if(e)return navigator.mediaDevices.enumerateDevices().then(function(e){return e.filter(function(e){return"videoinput"===e.kind})});var t=function(e,t){var i={},n={},a=[],o=new Map;return t.forEach(function(e,t){var r,s,h=e.label,l=e.deviceId;i[l]?i[l].push(h):(i[l]=[h],a.push(l)),h in n?(r=n[h],s=o.has(r)?o.get(r):new Set,o.set(r,s.add(l))):n[h]=l}),Promise.all(a.map(function(e){return navigator.mediaDevices.getUserMedia({video:{deviceId:{exact:e}}}).then(function(t){t.getTracks().forEach(function(e){return e.stop()})})).then(function(){var e=function(e,t,i){var n={},a=new Set;for(var o in i)a.add(i[o]);var s=new Set(a),h=new Map;for(a.forEach(function(e){return h.set(e,new Set([e]))});s.size;){var l=s;s=new Set,l.forEach(function(i){var n=t.get(i);e.get(i).forEach(function(e){h.get(i).add(e),n.forEach(function(e){return h.get(e).add(i)})}),n.forEach(function(e){return s.add(e)})})}return r(function(e,r){var i,n;i={},n=new Map,r.forEach(function(e){return n.set(e,[])}),e.forEach(function(e,a){var o=t.get(a);n.has(o)&&n.get(o).push(e.label)}),n.forEach(function(e,t){var r=i[t]=[];e.sort().forEach(function(e){return-1===r.indexOf(e)&&r.push(e)})}),i},{},new Map)},i=a.reduce(function(t,r){return y(r,e[r],i),t.add(e[r]),t},new Set),n=a.reduce(function(r,n){return t(0,i[n].length).forEach(function(t){var o;y((o=i[n][t])in e?e[o]:"__unlabeled__",n,r)}),r},new Map);return b(i,n)},t={};return Promise.all(Object.keys(e).map(function(r){return navigator.mediaDevices.getUserMedia({video:{deviceId:{exact:r}}}).then(function(i){var n,a=i.getVideoTracks()[0].getCapabilities();if(t[r]=a,e[r].some(function(e){return""!==e}))return n=e[r].join("|"),a.facingMode?Promise.resolve(a.facingMode.map(function(e){return{exact:e,label:n}})):Promise.resolve([{label:n}])}))})).then(function(e){var r=e.reduce(function(e,t){return e.concat(t)},[]);return function(e,t){var i=function(e){var t=e.reduce(function(e,t){return e[t.label]=t.label in e?e[t.label].concat(t.exact):[t.exact],e},{});return Object.keys(t).map(function(e){return{label:e,exact:t[e]}})}(e).sort(function(e,t){return e.label.localeCompare(t.label)}).reduce(function(e,r){var n,a,o=r.label,s=r.exact,h="camera-style-label"in t?o.replace(/\s*\([\s\S]*?\)$/,"").trim():o,l=e.find(function(e){return e.label===h});return l?((n=l.video.deviceId.exact).push.apply(n,s),a={},Object.keys(t).forEach(function(e){a[e]=t[e]}),a.deviceId=void 0,l.video=a):e.push({label:h,video:{deviceId:{exact:s}}}),e},[]).map(function(e){var r=Object.assign({},e);return delete r.video.deviceId,Object.assign(r,t)}),n=i.length;return t(0,n-1).map(function(e){return i.map(function(t){return Object.assign({},t,{label:1<n?t.label+" "+(e+1):t.label})})})}(r,t)}(t,r)})});return navigator.mediaDevices.enumerateDevices().then(function(e){return i.listCameras(!1,e)})},i.prototype.start=function(){var e=this;return this._stop(),this._paused=!1,this._off=c("camera-stream",function(){var t,r="environment"===e._preferredCamera||"user"===e._preferredCamera?Promise.resolve(e._preferredCamera):i.listCameras().then(function(t){var r=t.find(function(t){return t.label===e._preferredCamera});return r?Promise.resolve(r.video.deviceId.exact):Promise.reject("Camera not found.")}).then(function(e){return"string"==typeof e?{exact:e}:1<e.length?{any:e}:void 0});return Promise.resolve(r).then(function(r){return navigator.mediaDevices.getUserMedia({audio:!1,video:((t={facingMode:r})||{}).facingMode?t:{deviceId:t}}).catch(function(t){if(r&&!n(t,"NotFoundError"))throw t;return i.listCameras(!0).then(function(t){var i,n=t.find(function(t){var i,n,a;return("environment"===e._preferredCamera?"back":"front")===(i="string"==typeof(n=t.label)?n.toLowerCase():"",a=i.indexOf("back"),i.indexOf("front"),-1<a?i.substring(a-1,0):void 0)});if(n)return i=n.deviceId,navigator.mediaDevices.getUserMedia({audio:!1,video:{deviceId:{exact:i}}});var a=t[0];if(!a)throw new Error("No camera found.");return i=a.deviceId,navigator.mediaDevices.getUserMedia({audio:!1,video:{deviceId:{exact:i}}})})}).then(function(t){return e.$video.srcObject=t,e.$video.play(),t})})}),this._off.then(function(t){return e._stream=t}).catch(function(t){return e._off=null,Promise.reject(t)})},i.prototype.stop=function(){return this._paused=!0,this._stop()},i.prototype.destroy=function(){this.$video.removeEventListener("loadedmetadata",this._onLoadedMetaData),this.$video.removeEventListener("play",this._onPlay),document.removeEventListener("visibilitychange",this._onVisibilityChange),this.stop()},i.prototype.pause=function(e){this._paused=!0,e&&this.$video.pause()},i.prototype.setCamera=function(e){return this._preferredCamera=e,this.start()},Object.defineProperty(i.prototype,"hasFlash",{get:function(){var e=this.$video.srcObject;if(!e)return Promise.resolve(!1);var t=e.getVideoTracks()[0].getCapabilities();return Promise.resolve(!!t.torch||"zoom"in t&&t.zoom.max>t.zoom.min)},enumerable:!1,configurable:!0}),i.prototype.isFlashOn=function(){return this._flashOn},i.prototype.toggleFlash=function(){return this.setFlash(!this._flashOn)},i.prototype.setFlash=function(e){var t=this;return this.hasFlash.then(function(r){if(!r)return Promise.reject("No flash available");t._flashOn=e,t._off=c("camera-stream",function(){return t._stream.getVideoTracks()[0].applyConstraints({advanced:[{torch:e}]})}),t._off})},i.prototype.setGrayscaleWeights=function(e,t,r){return this.setGrayscaleWeights(e,t,r)},i.prototype.setInversionMode=function(e){return this.setInversionMode(e)},i.scanImage=function(e,t,r,n,a,o){var s,h,l,c;return c=null,s=n,l=!1,"string"==typeof e?g(e):Promise.resolve(e).then(function(e){if(e instanceof HTMLVideoElement||e instanceof HTMLImageElement){var t,r,i,n;n=e;try{t=n.naturalWidth||n.videoWidth,r=n.naturalHeight||n.videoHeight}catch(e){return Promise.reject("Image not ready")}if(s)i=s;else{var a=(i={}).width=t,o=i.height=r;i.x=0,i.y=0}var h=document.createElement("canvas");return h.width=t,h.height=r,h.getContext("2d",{alpha:!1,willReadFrequently:!0}).drawImage(e,0,0),Promise.all([Promise.resolve(h.getContext("2d",{alpha:!1,willReadFrequently:!0}).getImageData(i.x,i.y,i.width,i.height)),Promise.resolve(i)])}return e instanceof File?f(e).then(function(e){return i.scanImage(e,s,c,n,a,o)}):e instanceof URL?i.scanImage(e.href,s,c,n,a,o):e instanceof ImageData?Promise.all([Promise.resolve(e),Promise.resolve(s)]):e instanceof Blob?i.scanImage(new File([e],"image"),s,c,n,a,o):Promise.reject("Unsupported image type.")}).then(function(e){return s=e[0],h=e[1],(c=r||i.createQrEngine()).then(function(e){return d(v,{type:"decode",data:s,options:o},{transfer:[s.data.buffer]})}).then(function(e){if(null!==e)return Promise.resolve(e);var t=a||!1;return t||(l=!0,s.data.set(s.data.map(function(e){return 255-e})),d(v,{type:"decode",data:s,options:o},{transfer:[s.data.buffer]})}).then(function(e){if(null===e)return Promise.reject("QR code not found.");var t,r,n=e.points,o=Math.min(n[0].y,n[1].y,n[2].y),p=Math.max(n[0].y,n[1].y,n[2].y),m=Math.min(n[0].x,n[1].x,n[2].x),y=Math.max(n[0].x,n[1].x,n[2].x);return t=m,r=o,l&&(t=s.width-y,r=s.height-p),e.cornerPoints.forEach(function(e){e.x+=h.x,e.y+=h.y}),{data:e.data,cornerPoints:e.cornerPoints}})})},i.prototype._onPlay=function(){this._scanRegion=this._calculateScanRegion(this.$video),this._updateOverlay(),this._scanFrame()},i.prototype._onLoadedMetaData=function(){this._scanRegion=this._calculateScanRegion(this.$video),this._updateOverlay()},i.prototype._onVisibilityChange=function(){"hidden"===document.visibilityState?this.pause():this._paused||this.start()},i.prototype._calculateScanRegion=function(e){var t=Math.round(2/3*Math.min(e.videoWidth,e.videoHeight));return{x:Math.round((e.videoWidth-t)/2),y:Math.round((e.videoHeight-t)/2),width:t,height:t,downScaledWidth:400,downScaledHeight:400}},i.prototype._updateOverlay=function(){var e=this;requestAnimationFrame(function(){var t,r,i=e.$overlay;i&&(t=e.$video,r=e._scanRegion,(e=t.videoWidth/t.clientWidth)||(e=1),(i.style.width=t.videoWidth/e+"px",i.style.height=t.videoHeight/e+"px",i.style.top=t.offsetTop+"px",i.style.left=t.offsetLeft+"px",i.style.backgroundSize=t.clientWidth+"px "+t.clientHeight+"px",i.querySelectorAll("[data-corner], [data-laser]").forEach(function(i){var n=i.getAttribute("data-corner")||i.getAttribute("data-laser"),a=e*("down-left"===n||"down-right"===n?r.y+r.height:"up-left"===n||"up-right"===n?r.y:r.y+r.height/2)+"px",o=e*("up-right"===n||"down-right"===n?r.x+r.width:"up-left"===n||"down-left"===n?r.x:r.x)+"px";i.style.transform="translate("+o+", "+a+")"})))})},i.prototype._scanFrame=function(){var e=this;if(!this._paused&&this.$video.videoWidth){var t=this._legacyCanvasSize(this.$video);this.$canvas.width=t.downScaledWidth,this.$canvas.height=t.downScaledHeight;var r,i,n,a,o,s,h=m(this.$canvas);i=this.$video,(n=(r=t).x,a=r.y,o=r.width,s=r.height),h(i,n,a,o,s,0,0),d(v,{type:"detect",data:this.$canvas.getContext("2d",{alpha:!1,willReadFrequently:!0}).getImageData(0,0,this.$canvas.width,this.$canvas.height)},{transfer:[this.$canvas.getContext("2d",{alpha:!1,willReadFrequently:!0}).getImageData(0,0,this.$canvas.width,this.$canvas.height).data.buffer]}).then(function(t){t&&e._onEvent(t,e._onDecodeError)},function(t){e._onDecodeError(t,"Scanner error")}).then(function(){return e._scanFrame()})}},i.prototype._stop=function(){this._off&&(this._off.then(function(e){e.getTracks().forEach(function(e){return e.stop()})}),l.camera-stream=null,this._off=null,this._stream=null)},i}()}();
+    </script>
+    <script>
+        // CÓDIGO DE NUESTRA APLICACIÓN
+        (() => {
+            const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyAqMuAU0vtAccSTTqpcnXpGQkr_xv3O2lNNHmwXH4xIVTwcncZXxk044eRp64TOgD0g/exec";
+            let estado = { modulo: null, qrScanner: null, datosPendientes: {} };
 
-        // =================================================================
-        // APLICACIÓN DE TRAZABILIDAD
-        // =================================================================
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyAqMuAU0vtAccSTTqpcnXpGQkr_xv3O2lNNHmwXH4xIVTwcncZXxk044eRp64TOgD0g/exec";
-        let estado = { modulo: null, qrScanner: null, datosPendientes: {} };
+            const vistas = {
+                principal: document.getElementById('vista-principal'),
+                almacenForm: document.getElementById('vista-almacen-form'),
+                repartidorForm: document.getElementById('vista-repartidor-form'),
+                accion: document.getElementById('vista-accion'),
+                repartidorFallo: document.getElementById('vista-repartidor-fallo'),
+                lector: document.getElementById('lector-container')
+            };
+            const videoElement = document.getElementById('lector-qr');
+            const statusMessage = document.querySelector('.status-message');
+            
+            function cambiarVista(idVista) {
+                Object.values(vistas).forEach(v => v.classList.add('hidden'));
+                vistas[idVista]?.classList.remove('hidden');
+            }
 
-        // ELEMENTOS DEL DOM
-        const vistas = document.querySelectorAll('.vista');
-        const lectorContainer = document.getElementById('lector-container');
-        const videoElement = document.getElementById('lector-qr');
-        const statusMessage = document.querySelector('.status-message');
-        
-        // NAVEGACIÓN Y EVENTOS
-        function cambiarVista(idVista) {
-            vistas.forEach(v => v.classList.add('hidden'));
-            document.getElementById(idVista)?.classList.remove('hidden');
-        }
-        document.getElementById('btn-rol-almacen').addEventListener('click', () => { estado.modulo = 'almacen'; cambiarVista('vista-almacen-form'); });
-        document.getElementById('btn-rol-repartidor').addEventListener('click', () => { estado.modulo = 'repartidor'; cambiarVista('vista-repartidor-form'); });
-        document.querySelectorAll('.btn-volver').forEach(btn => btn.addEventListener('click', () => location.reload()));
-        document.getElementById('btn-escanear-factura').addEventListener('click', iniciarScanner);
-        document.getElementById('btn-escanear-repartidor').addEventListener('click', iniciarScanner);
-        document.getElementById('btn-confirmar-fallo').addEventListener('click', () => {
-            const motivo = document.getElementById('motivo-fallo').value;
-            if (!motivo) { alert("Por favor, selecciona un motivo."); return; }
-            actualizarStatus('Entrega Fallida', motivo);
-        });
+            function iniciarScanner() {
+                cambiarVista('lector');
+                estado.qrScanner = new QrScanner(videoElement, result => onScanSuccess(result.data), { highlightScanRegion: true });
+                estado.qrScanner.start().catch(err => mostrarMensaje(`Error al iniciar cámara: ${err}`, 'error'));
+            }
 
-        // LÓGICA DEL ESCÁNER
-        function iniciarScanner() {
-            cambiarVista('lector-container');
-            estado.qrScanner = new QrScanner(videoElement, result => onScanSuccess(result.data), { highlightScanRegion: true });
-            estado.qrScanner.start().catch(err => mostrarMensaje(`Error al iniciar cámara: ${err}`, 'error'));
-        }
-        function detenerScanner() {
-            if (estado.qrScanner) { estado.qrScanner.stop(); estado.qrScanner.destroy(); estado.qrScanner = null; }
-        }
+            function detenerScanner() {
+                if (estado.qrScanner) {
+                    estado.qrScanner.stop();
+                    estado.qrScanner.destroy();
+                    estado.qrScanner = null;
+                }
+            }
 
-        async function onScanSuccess(decodedText) {
-            detenerScanner();
-            mostrarMensaje("Consultando información...", "");
-            try {
-                const url = new URL(decodedText);
-                const urlParams = new URLSearchParams(url.search);
-                const idPedido = urlParams.get('id');
-                const rfc = urlParams.get('rr');
-                if (!idPedido) throw new Error("QR no válido.");
+            async function onScanSuccess(decodedText) {
+                detenerScanner();
+                mostrarMensaje("Consultando información...", "");
+                try {
+                    const url = new URL(decodedText);
+                    const urlParams = new URLSearchParams(url.search);
+                    const idPedido = urlParams.get('id');
+                    const rfc = urlParams.get('rr');
+                    if (!idPedido) throw new Error("QR no válido.");
 
-                estado.datosPendientes = { idPedido, rfc: rfc || "SIN_RFC", ubicacion: await obtenerUbicacion() };
+                    estado.datosPendientes = { idPedido, rfc: rfc || "SIN_RFC", ubicacion: await obtenerUbicacion() };
+
+                    if (estado.modulo === 'almacen') {
+                        const numeroPedido = document.getElementById('numero-pedido').value;
+                        const surtidor = document.getElementById('nombre-usuario-almacen').value;
+                        if (!numeroPedido.trim() || !surtidor.trim()) throw new Error("Rellena el Nº de Pedido y tu Nombre.");
+                        estado.datosPendientes.numeroPedidoOrigen = numeroPedido;
+                        estado.datosPendientes.surtidor = surtidor;
+                    } else if (estado.modulo === 'repartidor') {
+                        const repartidor = document.getElementById('nombre-repartidor').value;
+                        if (!repartidor.trim()) throw new Error("Escribe tu nombre de repartidor.");
+                        estado.datosPendientes.usuario = repartidor;
+                    }
+                    await enviarDatos({ accion: 'consultar_factura', idPedido, rfc: estado.datosPendientes.rfc });
+                } catch (error) {
+                    mostrarMensaje(`Error: ${error.message}`, 'error');
+                }
+            }
+
+            function manejarRespuesta(result) {
+                if (estado.modulo === 'almacen') {
+                    if (result.status === "NO_REGISTRADO") mostrarFichaDeAccion(result, result.cliente);
+                    else mostrarMensaje("Esta factura ya fue registrada.", "error");
+                } else if (estado.modulo === 'repartidor') {
+                    if (result.status === "REGISTRADO") mostrarFichaDeAccion(result);
+                    else mostrarMensaje("Factura no encontrada. Debe ser registrada primero en almacén.", "error");
+                }
+            }
+
+            function mostrarFichaDeAccion(datos, clienteInfo) {
+                const pedido = datos.pedido || {};
+                const cliente = clienteInfo || pedido;
+
+                document.getElementById('accion-titulo').textContent = estado.modulo === 'almacen' ? 'Confirmar Registro' : 'Siguiente Acción';
+                document.getElementById('accion-cliente').textContent = cliente['Razón Social'] || 'N/A';
+                document.getElementById('accion-pedido-origen').textContent = estado.datosPendientes.numeroPedidoOrigen || pedido.Numero_Pedido_Origen || 'N/A';
+                document.getElementById('accion-folio').textContent = estado.datosPendientes.idPedido || 'N/A';
+                document.getElementById('accion-direccion').textContent = `${cliente.Calle || ''} ${cliente['Num ext.'] || ''}, ${cliente.Colonia || ''}`.trim() || 'N/A';
+                
+                const statusSpan = document.getElementById('accion-status');
+                const statusActual = pedido.Status_Actual || 'Nuevo';
+                statusSpan.textContent = statusActual;
+                statusSpan.className = 'status-tag status-' + statusActual.replace(/\s+/g, '.');
+
+                const accionesDiv = document.getElementById('acciones-botones');
+                accionesDiv.innerHTML = '';
 
                 if (estado.modulo === 'almacen') {
-                    const numeroPedido = document.getElementById('numero-pedido').value;
-                    const surtidor = document.getElementById('nombre-usuario-almacen').value;
-                    if (!numeroPedido.trim() || !surtidor.trim()) throw new Error("Rellena el Nº de Pedido y tu Nombre.");
-                    estado.datosPendientes.numeroPedidoOrigen = numeroPedido;
-                    estado.datosPendientes.surtidor = surtidor;
+                    if (datos.status === 'NO_REGISTRADO') {
+                        accionesDiv.innerHTML = `<button type="button" id="btn-confirmar-registro" class="btn-confirm">✅ Confirmar y Registrar como "Facturado"</button>`;
+                        document.getElementById('btn-confirmar-registro').addEventListener('click', () => {
+                            enviarDatos({ accion: 'registrar_factura', ...estado.datosPendientes });
+                        });
+                    } else {
+                        accionesDiv.innerHTML = `<p>Este pedido ya fue registrado.</p>`;
+                    }
                 } else if (estado.modulo === 'repartidor') {
-                    const repartidor = document.getElementById('nombre-repartidor').value;
-                    if (!repartidor.trim()) throw new Error("Escribe tu nombre de repartidor.");
-                    estado.datosPendientes.usuario = repartidor;
+                    switch (statusActual) {
+                        case 'Facturado':
+                        case 'En Almacén (Devolución)':
+                            accionesDiv.innerHTML = `<button type="button" id="btn-iniciar-ruta" class="btn-main">Iniciar Ruta</button>`;
+                            document.getElementById('btn-iniciar-ruta').addEventListener('click', () => actualizarStatus('En Ruta'));
+                            break;
+                        case 'En Ruta':
+                            accionesDiv.innerHTML = `<button type="button" id="btn-prox-entrega" class="btn-main">Marcar Próxima Entrega</button>`;
+                            document.getElementById('btn-prox-entrega').addEventListener('click', () => actualizarStatus('En Proceso de Entrega'));
+                            break;
+                        case 'En Proceso de Entrega':
+                            accionesDiv.innerHTML = `<button type="button" id="btn-entrega-exitosa" class="btn-confirm">✅ Entrega Exitosa</button>
+                                                     <button type="button" id="btn-entrega-fallida" class="btn-cancel">❌ Entrega Fallida</button>`;
+                            document.getElementById('btn-entrega-exitosa').addEventListener('click', () => actualizarStatus('Entregado'));
+                            document.getElementById('btn-entrega-fallida').addEventListener('click', () => cambiarVista('repartidorFallo'));
+                            break;
+                        default:
+                            accionesDiv.innerHTML = `<p>Este pedido ya fue procesado (${statusActual}).</p>`;
+                    }
                 }
-                await enviarDatos({ accion: 'consultar_factura', idPedido, rfc: estado.datosPendientes.rfc });
-            } catch (error) {
-                mostrarMensaje(`Error: ${error.message}`, 'error');
+                cambiarVista('accion');
             }
-        }
-        
-        // LÓGICA DE PANTALLAS Y ACCIONES
-        function mostrarFichaDeAccion(datos, clienteInfo) {
-            const pedido = datos.pedido || {};
-            const cliente = clienteInfo || pedido;
-
-            document.getElementById('accion-titulo').textContent = estado.modulo === 'almacen' ? 'Confirmar Registro' : 'Siguiente Acción';
-            document.getElementById('accion-cliente').textContent = cliente['Razón Social'] || 'N/A';
-            document.getElementById('accion-pedido-origen').textContent = estado.datosPendientes.numeroPedidoOrigen || pedido.Numero_Pedido_Origen || 'N/A';
-            document.getElementById('accion-folio').textContent = estado.datosPendientes.idPedido || 'N/A';
-            document.getElementById('accion-direccion').textContent = `${cliente.Calle || ''} ${cliente['Num ext.'] || ''}, ${cliente.Colonia || ''}`.trim() || 'N/A';
             
-            const statusSpan = document.getElementById('accion-status');
-            const statusActual = pedido.Status_Actual || 'Nuevo';
-            statusSpan.textContent = statusActual;
-            statusSpan.className = 'status-tag status-' + statusActual.replace(/\s+/g, '.');
-
-            const accionesDiv = document.getElementById('acciones-botones');
-            accionesDiv.innerHTML = '';
-
-            if (estado.modulo === 'almacen') {
-                if (datos.status === 'NO_REGISTRADO') {
-                    accionesDiv.innerHTML = `<button type="button" id="btn-confirmar-registro" class="btn-confirm">✅ Confirmar y Registrar como "Facturado"</button>`;
-                    document.getElementById('btn-confirmar-registro').addEventListener('click', () => {
-                        enviarDatos({ accion: 'registrar_factura', ...estado.datosPendientes });
-                    });
-                } else {
-                    accionesDiv.innerHTML = `<p>Este pedido ya fue registrado.</p>`;
-                }
-            } else if (estado.modulo === 'repartidor') {
-                switch (statusActual) {
-                    case 'Facturado':
-                    case 'En Almacén (Devolución)':
-                        accionesDiv.innerHTML = `<button type="button" id="btn-iniciar-ruta" class="btn-main">Iniciar Ruta</button>`;
-                        document.getElementById('btn-iniciar-ruta').addEventListener('click', () => actualizarStatus('En Ruta'));
-                        break;
-                    case 'En Ruta':
-                        accionesDiv.innerHTML = `<button type="button" id="btn-prox-entrega" class="btn-main">Marcar Próxima Entrega</button>`;
-                        document.getElementById('btn-prox-entrega').addEventListener('click', () => actualizarStatus('En Proceso de Entrega'));
-                        break;
-                    case 'En Proceso de Entrega':
-                        accionesDiv.innerHTML = `<button type="button" id="btn-entrega-exitosa" class="btn-confirm">✅ Entrega Exitosa</button>
-                                                 <button type="button" id="btn-entrega-fallida" class="btn-cancel">❌ Entrega Fallida</button>`;
-                        document.getElementById('btn-entrega-exitosa').addEventListener('click', () => actualizarStatus('Entregado'));
-                        document.getElementById('btn-entrega-fallida').addEventListener('click', () => cambiarVista('vista-repartidor-fallo'));
-                        break;
-                    default:
-                        accionesDiv.innerHTML = `<p>Este pedido ya fue procesado (${statusActual}).</p>`;
-                }
+            async function actualizarStatus(nuevoStatus, detalles = "") {
+                await enviarDatos({
+                    accion: 'actualizar_status', idPedido: estado.datosPendientes.idPedido,
+                    nuevoStatus, usuario: estado.datosPendientes.usuario,
+                    ubicacion: estado.datosPendientes.ubicacion, detalles
+                });
             }
-            cambiarVista('vista-accion');
-        }
-        
-        async function actualizarStatus(nuevoStatus, detalles = "") {
-            await enviarDatos({
-                accion: 'actualizar_status', idPedido: estado.datosPendientes.idPedido,
-                nuevoStatus, usuario: estado.datosPendientes.usuario,
-                ubicacion: estado.datosPendientes.ubicacion, detalles
-            });
-        }
 
-        // COMUNICACIÓN CENTRALIZADA
-        async function enviarDatos(payload) {
-            mostrarMensaje("Enviando datos...", "");
-            const urlConDatos = new URL(SCRIPT_URL);
-            urlConDatos.searchParams.append('data', JSON.stringify(payload));
-            try {
-                const response = await fetch(urlConDatos, { method: 'GET' });
-                const result = await response.json();
-                if (result.status !== 'success') throw new Error(result.message);
+            function enviarDatos(payload) {
+                mostrarMensaje("Enviando datos...", "");
+                const callbackFn = 'procesarRespuesta' + Date.now();
                 
-                if (payload.accion === 'consultar_factura') {
-                    manejarRespuesta(result.data, result.data.cliente);
-                } else {
-                    mostrarMensaje(result.data, 'success');
-                    setTimeout(() => location.reload(), 3000);
-                }
-            } catch (error) {
-                mostrarMensaje(`Error de comunicación: ${error.message}`, 'error');
-                setTimeout(() => location.reload(), 4000);
-            }
-        }
+                window[callbackFn] = (result) => {
+                    try {
+                        if (result.status !== 'success') throw new Error(result.message);
+                        if (payload.accion === 'consultar_factura') manejarRespuesta(result.data);
+                        else {
+                            mostrarMensaje(result.data, 'success');
+                            setTimeout(() => location.reload(), 3000);
+                        }
+                    } catch (error) {
+                        mostrarMensaje(`Error: ${error.message}`, 'error');
+                        setTimeout(() => location.reload(), 3000);
+                    }
+                    delete window[callbackFn];
+                    document.body.removeChild(document.getElementById('jsonp-script'));
+                };
+                
+                const urlConDatos = new URL(SCRIPT_URL);
+                urlConDatos.searchParams.append('data', JSON.stringify(payload));
+                urlConDatos.searchParams.append('callback', callbackFn);
 
-        // FUNCIONES DE UTILIDAD
-        function obtenerUbicacion() {
-            return new Promise(resolve => {
-                if (!navigator.geolocation) return resolve("Geolocalización no soportada");
-                navigator.geolocation.getCurrentPosition(
-                    p => resolve(`${p.coords.latitude},${p.coords.longitude}`),
-                    () => resolve("No se pudo obtener la ubicación"), { timeout: 10000 }
-                );
+                const scriptTag = document.createElement('script');
+                scriptTag.id = 'jsonp-script';
+                scriptTag.src = urlConDatos.href;
+                scriptTag.onerror = () => {
+                    mostrarMensaje('Error de comunicación (timeout o red).', 'error');
+                    delete window[callbackFn];
+                };
+                document.body.appendChild(scriptTag);
+            }
+
+            function obtenerUbicacion() {
+                return new Promise(resolve => {
+                    if (!navigator.geolocation) return resolve("Geolocalización no soportada");
+                    navigator.geolocation.getCurrentPosition(
+                        p => resolve(`${p.coords.latitude},${p.coords.longitude}`),
+                        () => resolve("No se pudo obtener la ubicación"), { timeout: 10000 }
+                    );
+                });
+            }
+            function mostrarMensaje(mensaje, tipo = "") {
+                statusMessage.textContent = mensaje;
+                statusMessage.className = `status-message status-${tipo}`;
+            }
+
+            // EVENTOS INICIALES
+            document.getElementById('btn-rol-almacen').addEventListener('click', () => { estado.modulo = 'almacen'; cambiarVista('almacenForm'); });
+            document.getElementById('btn-rol-repartidor').addEventListener('click', () => { estado.modulo = 'repartidor'; cambiarVista('repartidorForm'); });
+            document.querySelectorAll('.btn-volver').forEach(btn => btn.addEventListener('click', () => location.reload()));
+            document.getElementById('btn-escanear-factura').addEventListener('click', iniciarScanner);
+            document.getElementById('btn-escanear-repartidor').addEventListener('click', iniciarScanner);
+            document.getElementById('btn-confirmar-fallo').addEventListener('click', () => {
+                const motivo = document.getElementById('motivo-fallo').value;
+                if (!motivo) { alert("Por favor, selecciona un motivo."); return; }
+                actualizarStatus('Entrega Fallida', motivo);
             });
-        }
-        function mostrarMensaje(mensaje, tipo = "") {
-            statusMessage.textContent = mensaje;
-            statusMessage.className = `status-message status-${tipo}`;
-        }
+        })();
     </script>
 </body>
 </html>
