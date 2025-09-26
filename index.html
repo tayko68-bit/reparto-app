@@ -94,7 +94,7 @@
         const videoElement = document.getElementById('lector-qr');
         const statusMessage = document.querySelector('.status-message');
         
-        // NAVEGACIÓN
+        // NAVEGACIÓN Y EVENTOS PRINCIPALES
         function cambiarVista(idVista) {
             vistas.forEach(v => v.classList.add('hidden'));
             document.getElementById(idVista).classList.remove('hidden');
@@ -102,6 +102,16 @@
         document.getElementById('btn-rol-almacen').addEventListener('click', () => { estado.modulo = 'almacen'; cambiarVista('vista-almacen-form'); });
         document.getElementById('btn-rol-repartidor').addEventListener('click', () => { estado.modulo = 'repartidor'; cambiarVista('vista-repartidor-form'); });
         document.querySelectorAll('.btn-volver').forEach(btn => btn.addEventListener('click', () => location.reload()));
+        document.getElementById('btn-escanear-factura').addEventListener('click', iniciarScanner);
+        document.getElementById('btn-escanear-repartidor').addEventListener('click', iniciarScanner);
+        document.getElementById('btn-confirmar-registro').addEventListener('click', () => enviarDatos({
+            accion: 'registrar_factura', ...estado.datosPendientes
+        }));
+        document.getElementById('btn-confirmar-fallo').addEventListener('click', () => {
+            const motivo = document.getElementById('motivo-fallo').value;
+            if (!motivo) { alert("Por favor, selecciona un motivo."); return; }
+            actualizarStatus('Entrega Fallida', motivo);
+        });
 
         // LÓGICA DEL ESCÁNER
         function iniciarScanner() {
@@ -130,23 +140,23 @@
                     const numeroPedido = document.getElementById('numero-pedido').value;
                     const surtidor = document.getElementById('nombre-surtidor-almacen').value;
                     if (!numeroPedido.trim() || !surtidor.trim()) throw new Error("Rellena el Nº de Pedido y tu Nombre.");
-                    estado.datosPendientes.numeroPedido = numeroPedido;
+                    estado.datosPendientes.numeroPedidoOrigen = numeroPedido;
                     estado.datosPendientes.surtidor = surtidor;
-                    estado.datosPendientes.ubicacion = await obtenerUbicacion();
                 } else if (estado.modulo === 'repartidor') {
                     const repartidor = document.getElementById('nombre-repartidor').value;
                     if (!repartidor.trim()) throw new Error("Escribe tu nombre de repartidor.");
-                    estado.datosPendientes.repartidor = repartidor;
-                    estado.datosPendientes.ubicacion = await obtenerUbicacion();
+                    estado.datosPendientes.usuario = repartidor;
                 }
-
+                estado.datosPendientes.ubicacion = await obtenerUbicacion();
                 await enviarDatos({ accion: 'consultar_factura', idPedido, rfc: estado.datosPendientes.rfc });
+
             } catch (error) {
-                mostrarMensaje(`Error: ${error.message}. La página se recargará.`, 'error');
-                setTimeout(() => location.reload(), 30000); // AUMENTAMOS TIEMPO A 30 SEGUNDOS
+                mostrarMensaje(`Error: ${error.message}`, 'error');
+                setTimeout(() => location.reload(), 3000);
             }
         }
         
+        // MANEJO DE RESPUESTAS Y PANTALLAS
         function manejarRespuesta(result) {
             if (estado.modulo === 'almacen') {
                 if (result.status === "NO_REGISTRADO") mostrarConfirmacionAlmacen(result.cliente);
@@ -156,25 +166,22 @@
                 else mostrarMensaje("Factura no encontrada. Debe ser registrada primero en almacén.", "error");
             }
         }
-
         function mostrarConfirmacionAlmacen(cliente) {
             document.getElementById('conf-cliente').textContent = cliente['Razón Social'] || 'N/A';
             document.getElementById('conf-direccion').textContent = `${cliente.Calle || ''} ${cliente['Num ext.'] || ''}, ${cliente.Colonia || ''}`.trim();
-            document.getElementById('conf-pedido').textContent = estado.datosPendientes.numeroPedido;
+            document.getElementById('conf-pedido').textContent = estado.datosPendientes.numeroPedidoOrigen;
             cambiarVista('vista-almacen-confirmacion');
         }
-
         function mostrarAccionesRepartidor(pedido) {
-            estado.datosPendientes.pedido = pedido;
-            document.getElementById('reparto-cliente').textContent = pedido.Status_Actual === 'Facturado' ? pedido['Razón Social'] : pedido['Razón Social'];
+            document.getElementById('reparto-cliente').textContent = pedido.Razón_Social;
             const statusSpan = document.getElementById('reparto-status');
             statusSpan.textContent = pedido.Status_Actual;
             statusSpan.className = 'status-tag status-' + (pedido.Status_Actual || "").replace(/\s+/g, '.');
 
             const accionesDiv = document.getElementById('acciones-repartidor');
             accionesDiv.innerHTML = '';
-
             const status = pedido.Status_Actual;
+
             if (status === 'Facturado' || status === 'En Almacén (Devolución)') {
                 accionesDiv.innerHTML = `<button type="button" id="btn-iniciar-ruta" class="btn-main">Iniciar Ruta</button>`;
                 document.getElementById('btn-iniciar-ruta').addEventListener('click', () => actualizarStatus('En Ruta'));
@@ -192,57 +199,48 @@
             cambiarVista('vista-repartidor-accion');
         }
         
-        document.getElementById('btn-escanear-factura').addEventListener('click', iniciarScanner);
-        document.getElementById('btn-escanear-repartidor').addEventListener('click', iniciarScanner);
-        
-        document.getElementById('btn-confirmar-registro').addEventListener('click', () => {
-            enviarDatos({
-                accion: 'registrar_factura',
-                idPedido: estado.datosPendientes.idPedido,
-                rfc: estado.datosPendientes.rfc,
-                numeroPedidoOrigen: estado.datosPendientes.numeroPedido,
-                surtidor: estado.datosPendientes.surtidor,
-                ubicacion: estado.datosPendientes.ubicacion
-            });
-        });
-        
-        document.getElementById('btn-confirmar-fallo').addEventListener('click', () => {
-            const motivo = document.getElementById('motivo-fallo').value;
-            if (!motivo) { alert("Por favor, selecciona un motivo."); return; }
-            actualizarStatus('Entrega Fallida', motivo);
-        });
-
         async function actualizarStatus(nuevoStatus, detalles = "") {
             await enviarDatos({
-                accion: 'actualizar_status',
-                idPedido: estado.datosPendientes.idPedido,
-                nuevoStatus: nuevoStatus,
-                usuario: estado.datosPendientes.repartidor,
-                ubicacion: estado.datosPendientes.ubicacion,
-                detalles: detalles
+                accion: 'actualizar_status', idPedido: estado.datosPendientes.idPedido,
+                nuevoStatus, usuario: estado.datosPendientes.usuario,
+                ubicacion: estado.datosPendientes.ubicacion, detalles
             });
         }
 
-        async function enviarDatos(payload) {
+        // COMUNICACIÓN CENTRALIZADA (MÉTODO JSONP)
+        function enviarDatos(payload) {
             mostrarMensaje("Enviando datos...", "");
+            const callbackFn = 'procesarRespuesta'; // Nombre de la función global que procesará la respuesta
+            
+            // Definimos la función en el scope global para que el script la pueda llamar
+            window[callbackFn] = (result) => {
+                try {
+                    if (result.status !== 'success') throw new Error(result.message);
+                    if (payload.accion === 'consultar_factura') manejarRespuesta(result.data);
+                    else {
+                        mostrarMensaje(result.data, 'success');
+                        setTimeout(() => location.reload(), 3000);
+                    }
+                } catch (error) {
+                    mostrarMensaje(`Error: ${error.message}`, 'error');
+                    setTimeout(() => location.reload(), 3000);
+                }
+                // Limpiar después de usar
+                delete window[callbackFn];
+                document.body.removeChild(document.getElementById('jsonp-script'));
+            };
+            
             const urlConDatos = new URL(SCRIPT_URL);
             urlConDatos.searchParams.append('data', JSON.stringify(payload));
-            try {
-                const response = await fetch(urlConDatos, { method: 'GET' });
-                const result = await response.json();
-                if (result.status !== 'success') throw new Error(result.message);
-                if (payload.accion === 'consultar_factura') manejarRespuesta(result.data);
-                else {
-                    mostrarMensaje(result.data, 'success');
-                    setTimeout(() => location.reload(), 4000);
-                }
-            } catch (error) {
-                mostrarMensaje(`Error de comunicación: ${error.message}. La página se recargará.`, 'error');
-                console.error("Error en Fetch:", error);
-                setTimeout(() => location.reload(), 30000); // AUMENTAMOS TIEMPO A 30 SEGUNDOS
-            }
+            urlConDatos.searchParams.append('callback', callbackFn);
+
+            const scriptTag = document.createElement('script');
+            scriptTag.id = 'jsonp-script';
+            scriptTag.src = urlConDatos.href;
+            document.body.appendChild(scriptTag);
         }
 
+        // FUNCIONES DE UTILIDAD
         function obtenerUbicacion() {
             return new Promise(resolve => {
                 if (!navigator.geolocation) return resolve("Geolocalización no soportada");
@@ -259,4 +257,3 @@
     </script>
 </body>
 </html>
-
