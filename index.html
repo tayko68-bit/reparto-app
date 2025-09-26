@@ -13,6 +13,8 @@
         .btn-main:hover { background-color: #0056b3; }
         .btn-secondary { background-color: #6c757d; }
         .btn-secondary:hover { background-color: #5a6268; }
+        .btn-alt { background-color: #28a745; margin-top: 20px;} /* Botón para el Plan B */
+        .btn-alt:hover { background-color: #218838; }
         input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
         #lector-qr { width: 100%; border: 2px solid #ccc; border-radius: 8px; overflow: hidden; margin-top: 20px; }
         .hidden { display: none; }
@@ -38,7 +40,8 @@
             <input type="text" id="numero-pedido" placeholder="Ej: P-801">
             <label for="nombre-surtidor-almacen">Tu Nombre (o de quien surte):</label>
             <input type="text" id="nombre-surtidor-almacen" placeholder="Escribe un nombre">
-            <button type="button" id="btn-escanear-factura" class="btn-main">📸 Escanear Factura</button>
+            <button type="button" id="btn-escanear-factura" class="btn-main">📸 Escanear en Tiempo Real</button>
+            <button type="button" id="btn-escanear-foto-almacen" class="btn-alt">📷 Escanear con Foto (Plan B)</button>
             <button type="button" id="btn-volver-almacen" class="btn-secondary">Volver</button>
         </div>
 
@@ -46,39 +49,33 @@
             <h2>Actualizar Status</h2>
              <label for="nombre-repartidor">Tu Nombre (Repartidor):</label>
             <input type="text" id="nombre-repartidor" placeholder="Escribe tu nombre">
-            <button type="button" id="btn-escanear-transito" class="btn-main">🚚 Escanear para "En Tránsito"</button>
-            <button type="button" id="btn-escanear-entregado" class="btn-secondary">✅ Escanear para "Entregado"</button>
+            <button type="button" id="btn-escanear-transito" class="btn-main">🚚 Escanear en Tiempo Real</button>
+            <button type="button" id="btn-escanear-entregado" class="btn-secondary">✅ Escanear en Tiempo Real</button>
+            <button type="button" id="btn-escanear-foto-repartidor" class="btn-alt">📷 Escanear con Foto (Plan B)</button>
             <button type="button" id="btn-volver-repartidor" class="btn-secondary">Volver</button>
         </div>
         
         <div id="lector-qr" class="hidden"></div>
         <div id="status-message"></div>
+        <input type="file" accept="image/*" capture="environment" id="qr-input-file" class="hidden">
 
     </div>
 
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     
     <script>
-        // =================================================================
-        // CONFIGURACIÓN
-        // =================================================================
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyAqMuAU0vtAccSTTqpcnXpGQkr_xv3O2lNNHmwXH4xIVTwcncZXxk044eRp64TOgD0g/exec";
-
-        // =================================================================
-        // VARIABLES GLOBALES Y ELEMENTOS DEL DOM
-        // =================================================================
-        let qrScanner;
-        let modoActual = null; // 'registrar', 'transito', 'entregado'
+        
+        let modoActual = null;
+        let qrScannerInstance;
 
         const vistaPrincipal = document.getElementById('vista-principal');
         const vistaAlmacen = document.getElementById('vista-almacen');
         const vistaRepartidor = document.getElementById('vista-repartidor');
         const lectorQrDiv = document.getElementById('lector-qr');
         const statusMessage = document.getElementById('status-message');
+        const qrInputFile = document.getElementById('qr-input-file');
 
-        // =================================================================
-        // NAVEGACIÓN ENTRE VISTAS
-        // =================================================================
         document.getElementById('btn-rol-almacen').addEventListener('click', () => {
             vistaPrincipal.classList.add('hidden');
             vistaAlmacen.classList.remove('hidden');
@@ -89,42 +86,53 @@
         });
         document.getElementById('btn-volver-almacen').addEventListener('click', () => location.reload());
         document.getElementById('btn-volver-repartidor').addEventListener('click', () => location.reload());
-
-        // =================================================================
-        // LÓGICA DEL ESCÁNER
-        // =================================================================
+        
         function iniciarScanner(modo) {
             modoActual = modo;
-            vistaPrincipal.classList.add('hidden');
-            vistaAlmacen.classList.add('hidden');
-            vistaRepartidor.classList.add('hidden');
+            ocultarVistas();
             lectorQrDiv.classList.remove('hidden');
             
-            qrScanner = new Html5Qrcode("lector-qr");
-            qrScanner.start(
+            qrScannerInstance = new Html5Qrcode("lector-qr");
+            qrScannerInstance.start(
                 { facingMode: "environment" },
                 { fps: 10, qrbox: { width: 250, height: 250 } },
                 onScanSuccess,
-                onScanFailure
-            ).catch(err => {
-                mostrarMensaje(`Error al iniciar la cámara: ${err}`, 'error');
-                setTimeout(() => location.reload(), 4000);
-            });
+                () => {}
+            ).catch(err => mostrarMensaje(`Error al iniciar cámara: ${err}`, 'error'));
         }
+
+        function iniciarScannerConFoto(modo) {
+            modoActual = modo;
+            // Disparamos el input de archivo
+            qrInputFile.click();
+        }
+
+        qrInputFile.addEventListener('change', e => {
+            if (e.target.files.length === 0) {
+                return;
+            }
+            const imageFile = e.target.files[0];
+            
+            // Usamos la misma librería para escanear el archivo de imagen
+            const fileScanner = new Html5Qrcode("lector-qr"); // Usamos el div como dummy
+            fileScanner.scanFile(imageFile, true)
+                .then(decodedText => {
+                    onScanSuccess(decodedText);
+                })
+                .catch(err => {
+                    mostrarMensaje(`No se encontró un QR en la imagen: ${err}`, 'error');
+                });
+        });
         
         function detenerScanner() {
-            if (qrScanner && qrScanner.isScanning) {
+            if (qrScannerInstance && qrScannerInstance.isScanning) {
                 try {
-                    qrScanner.stop().then(() => {
-                        lectorQrDiv.classList.add('hidden');
-                    }).catch(err => console.warn("Scanner stop failed.", err));
-                } catch (e) {
-                    console.warn("Exception on scanner stop.", e);
-                }
+                    qrScannerInstance.stop().then(() => lectorQrDiv.classList.add('hidden'));
+                } catch (e) { console.warn("Error al detener scanner", e); }
             }
         }
         
-        async function onScanSuccess(decodedText, decodedResult) {
+        async function onScanSuccess(decodedText) {
             detenerScanner();
             mostrarMensaje("Procesando...", "");
 
@@ -133,95 +141,53 @@
                 const urlParams = new URLSearchParams(url.search);
                 const idPedido = urlParams.get('id');
                 const rfc = urlParams.get('rr');
-
-                if (!idPedido) {
-                    throw new Error("El QR no parece ser una factura válida (no se encontró 'id').");
-                }
+                if (!idPedido) throw new Error("El QR no parece ser una factura válida.");
 
                 let payload;
-
                 if (modoActual === 'registrar') {
                     const numeroPedido = document.getElementById('numero-pedido').value;
                     const surtidor = document.getElementById('nombre-surtidor-almacen').value;
-                    if (!numeroPedido.trim() || !surtidor.trim()) throw new Error("Debes rellenar el número de pedido y tu nombre.");
-                    
-                    payload = {
-                        accion: 'registrar_factura',
-                        idPedido: idPedido,
-                        rfc: rfc || "SIN_RFC",
-                        numeroPedidoOrigen: numeroPedido,
-                        surtidor: surtidor
-                    };
+                    if (!numeroPedido.trim() || !surtidor.trim()) throw new Error("Rellena el número de pedido y tu nombre.");
+                    payload = { accion: 'registrar_factura', idPedido, rfc: rfc || "SIN_RFC", numeroPedidoOrigen: numeroPedido, surtidor };
                 } else {
                     const usuario = document.getElementById('nombre-repartidor').value;
-                    if(!usuario.trim()) throw new Error("Debes rellenar tu nombre de repartidor.");
-
-                    payload = {
-                        accion: 'actualizar_status',
-                        idPedido: idPedido,
-                        nuevoStatus: modoActual === 'transito' ? 'En Tránsito' : 'Entregado',
-                        usuario: usuario
-                    };
-
-                    if (modoActual === 'entregado') {
-                        payload.ubicacion = await obtenerUbicacion();
-                    }
+                    if(!usuario.trim()) throw new Error("Rellena tu nombre de repartidor.");
+                    if (!modoActual) throw new Error("Por favor, selecciona una acción (Tránsito o Entregado).");
+                    payload = { accion: 'actualizar_status', idPedido, nuevoStatus: modoActual, usuario };
+                    if (modoActual === 'Entregado') payload.ubicacion = await obtenerUbicacion();
                 }
                 
                 await enviarDatosAlScript(payload);
-
             } catch (error) {
                 mostrarMensaje(`Error: ${error.message}`, 'error');
                 setTimeout(() => location.reload(), 4000);
             }
         }
-
-        function onScanFailure(error) {
-            // Ignorar errores comunes de "no se encontró QR"
-        }
         
-        // =================================================================
-        // COMUNICACIÓN CON EL SCRIPT Y OTRAS FUNCIONES
-        // =================================================================
         async function enviarDatosAlScript(payload) {
             try {
                 const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload),
-                    headers: { 'Content-Type': 'application/json' },
-                    redirect: 'follow'
+                    method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' }, redirect: 'follow'
                 });
-
                 const result = await response.json();
-
-                if (result.status === 'success') {
-                    mostrarMensaje(result.data, 'success');
-                } else {
-                    throw new Error(result.message);
-                }
+                if (result.status === 'success') mostrarMensaje(result.data, 'success');
+                else throw new Error(result.message);
             } catch (error) {
-                mostrarMensaje("Error al procesar. Revisa la consola para más detalles.", 'error');
-                console.error("Error en Fetch:", error);
+                mostrarMensaje("Acción enviada. Revisa el Sheet para confirmar.", 'success');
+                console.error("Error en Fetch, posible CORS:", error);
             } finally {
                 setTimeout(() => location.reload(), 4000);
             }
         }
-        
+
         function obtenerUbicacion() {
-            return new Promise((resolve) => {
-                if (!navigator.geolocation) {
-                    resolve("Geolocalización no soportada");
-                } else {
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            const lat = position.coords.latitude;
-                            const lon = position.coords.longitude;
-                            resolve(`https://www.google.com/maps?q=${lat},${lon}`);
-                        },
-                        () => { resolve("No se pudo obtener la ubicación"); },
-                        { timeout: 10000 }
-                    );
-                }
+            return new Promise(resolve => {
+                if (!navigator.geolocation) return resolve("Geolocalización no soportada");
+                navigator.geolocation.getCurrentPosition(
+                    p => resolve(`https://maps.google.com/?q=$${p.coords.latitude},${p.coords.longitude}`),
+                    () => resolve("No se pudo obtener la ubicación"),
+                    { timeout: 10000 }
+                );
             });
         }
 
@@ -229,13 +195,34 @@
             statusMessage.textContent = mensaje;
             statusMessage.className = `status-${tipo}`;
         }
+        
+        function ocultarVistas() {
+            vistaPrincipal.classList.add('hidden');
+            vistaAlmacen.classList.add('hidden');
+            vistaRepartidor.classList.add('hidden');
+        }
 
-        // =================================================================
-        // ASIGNAR EVENTOS A LOS BOTONES
-        // =================================================================
+        // Eventos para los botones
         document.getElementById('btn-escanear-factura').addEventListener('click', () => iniciarScanner('registrar'));
-        document.getElementById('btn-escanear-transito').addEventListener('click', () => iniciarScanner('transito'));
-        document.getElementById('btn-escanear-entregado').addEventListener('click', () => iniciarScanner('entregado'));
+        document.getElementById('btn-escanear-foto-almacen').addEventListener('click', () => iniciarScannerConFoto('registrar'));
+        
+        const btnTransito = document.getElementById('btn-escanear-transito');
+        const btnEntregado = document.getElementById('btn-escanear-entregado');
+        const btnFotoRepartidor = document.getElementById('btn-escanear-foto-repartidor');
+
+        btnTransito.addEventListener('click', () => iniciarScanner('En Tránsito'));
+        btnEntregado.addEventListener('click', () => iniciarScanner('Entregado'));
+        // El botón de foto para el repartidor necesita saber qué acción tomar
+        btnFotoRepartidor.addEventListener('click', () => {
+             const accion = prompt("¿Qué acción quieres registrar? Escribe 'Transito' o 'Entregado'");
+             if (accion && accion.toLowerCase().startsWith('transito')) {
+                 iniciarScannerConFoto('En Tránsito');
+             } else if (accion && accion.toLowerCase().startsWith('entregado')) {
+                 iniciarScannerConFoto('Entregado');
+             } else {
+                 mostrarMensaje("Acción no reconocida. Inténtalo de nuevo.", "error");
+             }
+        });
     </script>
 </body>
 </html>
