@@ -119,38 +119,39 @@
             min-height: 80px;
         }
 
-        /* MENSAJE DE ESTADO FIJO EN LA PARTE SUPERIOR */
+        /* MENSAJE DE ESTADO EN EL CENTRO DE LA PANTALLA */
         .status-message {
             position: fixed;
-            top: 10px;
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%);
-            z-index: 2000;
+            transform: translate(-50%, -50%);
+            z-index: 3000;
             max-width: 90%;
             width: auto;
             min-width: 300px;
             text-align: center;
             font-weight: bold;
-            padding: 15px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 20px 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
             transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
         }
 
         .status-success {
-            background-color: #d4edda;
+            background-color: rgba(212, 237, 218, 0.95);
             color: #155724;
             border: 2px solid #c3e6cb;
         }
 
         .status-error {
-            background-color: #f8d7da;
+            background-color: rgba(248, 215, 218, 0.95);
             color: #721c24;
             border: 2px solid #f5c6cb;
         }
 
         .status-loading {
-            background-color: #d1ecf1;
+            background-color: rgba(209, 236, 241, 0.95);
             color: #0c5460;
             border: 2px solid #bee5eb;
         }
@@ -256,7 +257,8 @@
             font-size: 14px;
         }
 
-        #lector-container, #camara-container {
+        /* SCANNER QR - Horizontal como antes */
+        #lector-container {
             position: fixed;
             top: 0;
             left: 0;
@@ -271,7 +273,7 @@
             padding: 20px;
         }
 
-        #lector-qr, #camara-video {
+        #lector-qr {
             width: 90%;
             max-width: 400px;
             height: 300px;
@@ -280,23 +282,49 @@
             border: 3px solid white;
         }
 
+        /* CÁMARA PARA FACTURAS - Vertical y más grande */
+        #camara-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        #camara-video {
+            width: 95%;
+            max-width: 500px;
+            height: 70vh;
+            max-height: 600px;
+            border-radius: 12px;
+            object-fit: cover;
+            border: 3px solid white;
+        }
+
         .scanner-header, .camara-header {
             color: white;
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .scanner-header h3, .camara-header h3 {
             margin: 0 0 10px 0;
-            font-size: 1.5em;
+            font-size: 1.4em;
         }
 
         .scanner-tip, .camara-tip {
             background-color: rgba(255,255,255,0.1);
             color: white;
-            padding: 10px;
+            padding: 8px;
             border-radius: 8px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             text-align: center;
             font-size: 14px;
         }
@@ -310,11 +338,18 @@
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            margin: 10px;
+            margin: 8px;
+            min-width: 120px;
         }
 
         .capture-photo {
             background-color: var(--success-color);
+        }
+
+        .camera-controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
         }
 
         .descripcion {
@@ -354,9 +389,14 @@
                 padding: 14px;
             }
 
-            #lector-qr, #camara-video {
+            #lector-qr {
                 width: 95%;
                 height: 250px;
+            }
+
+            #camara-video {
+                width: 98%;
+                height: 65vh;
             }
 
             .info-card p strong {
@@ -368,14 +408,18 @@
             }
 
             .status-message {
-                top: 5px;
-                min-width: 250px;
-                font-size: 14px;
-                padding: 12px 15px;
+                min-width: 280px;
+                font-size: 15px;
+                padding: 18px 20px;
             }
 
             .canvas-controls {
                 flex-direction: column;
+            }
+
+            .camera-controls {
+                flex-direction: column;
+                align-items: center;
             }
         }
     </style>
@@ -521,16 +565,16 @@
             </button>
         </div>
 
-        <!-- Cámara para Fotos -->
+        <!-- Cámara para Fotos de Facturas -->
         <div id="camara-container" class="hidden">
             <div class="camara-header">
-                <h3 id="camara-titulo">📸 Capturar Foto</h3>
+                <h3 id="camara-titulo">📸 Capturar Factura</h3>
                 <div class="camara-tip">
-                    Posiciona el documento dentro del marco
+                    Posiciona la factura completa dentro del marco vertical
                 </div>
             </div>
             <video id="camara-video" autoplay muted playsinline></video>
-            <div>
+            <div class="camera-controls">
                 <button type="button" class="capture-photo">
                     📸 Tomar Foto
                 </button>
@@ -541,7 +585,7 @@
         </div>
     </div>
 
-    <!-- Mensaje de estado FIJO en la parte superior -->
+    <!-- Mensaje de estado EN EL CENTRO -->
     <div class="status-message hidden" id="status-message"></div>
 
     <!-- Librería QR Scanner -->
@@ -561,7 +605,9 @@
                     // Datos de entrega
                     fotoFactura: null,
                     firmaCliente: null,
-                    infoAdicional: ''
+                    infoAdicional: '',
+                    // Datos originales para preservar
+                    datosOriginales: null
                 };
                 this.inicializar();
             }
@@ -796,7 +842,7 @@
                 this.cambiarVista(vistaAnterior);
             }
 
-            // CAPTURA DE FOTOS
+            // CAPTURA DE FOTOS CON CÁMARA VERTICAL
             async iniciarCapturarFactura() {
                 try {
                     this.cambiarVista('camara');
@@ -807,8 +853,8 @@
                     this.estado.cameraStream = await navigator.mediaDevices.getUserMedia({
                         video: { 
                             facingMode: 'environment',
-                            width: { ideal: 1280 },
-                            height: { ideal: 720 }
+                            width: { ideal: 1080 },
+                            height: { ideal: 1920 } // Aspect ratio vertical
                         }
                     });
                     
@@ -831,8 +877,8 @@
                 canvas.height = video.videoHeight;
                 ctx.drawImage(video, 0, 0);
 
-                // Convertir a base64
-                const fotoBase64 = canvas.toDataURL('image/jpeg', 0.8);
+                // Convertir a base64 con mejor calidad
+                const fotoBase64 = canvas.toDataURL('image/jpeg', 0.9);
                 
                 // Guardar la foto
                 this.estado.fotoFactura = fotoBase64;
@@ -992,6 +1038,11 @@
             }
 
             manejarRespuestaConsulta(resultado) {
+                // PRESERVAR DATOS ORIGINALES PARA DEBUG
+                this.estado.datosOriginales = resultado;
+                console.log('=== DATOS ORIGINALES COMPLETOS ===');
+                console.log(JSON.stringify(resultado, null, 2));
+
                 if (this.estado.modulo === 'almacen') {
                     if (resultado.status === "NO_REGISTRADO") {
                         this.mostrarFichaDeAccion(resultado, resultado.cliente);
@@ -1010,54 +1061,86 @@
             }
 
             mostrarFichaDeAccion(datos, clienteInfo = null) {
-                console.log('=== DEBUG FICHA DE ACCIÓN ===');
-                console.log('Datos completos recibidos:', JSON.stringify(datos, null, 2));
+                console.log('=== MOSTRANDO FICHA DE ACCIÓN ===');
+                console.log('Módulo:', this.estado.modulo);
+                console.log('Datos recibidos:', datos);
+                console.log('Cliente info específico:', clienteInfo);
 
+                // EXTRACCIÓN MEJORADA DE DATOS
                 let pedido, cliente;
 
                 if (this.estado.modulo === 'almacen') {
-                    pedido = datos.pedido || datos || {};
-                    cliente = clienteInfo || pedido;
+                    // Para almacén
+                    pedido = datos.pedido || {};
+                    cliente = clienteInfo || datos.cliente || {};
+                    console.log('ALMACÉN - Pedido:', pedido);
+                    console.log('ALMACÉN - Cliente:', cliente);
                 } else {
-                    pedido = datos.pedido || datos;
-                    cliente = datos.cliente || 
+                    // Para repartidor - buscar más extensivamente
+                    pedido = datos.pedido || datos.data || datos;
+                    
+                    // Buscar cliente en múltiples ubicaciones
+                    cliente = clienteInfo || 
+                            datos.cliente || 
                             datos.Cliente || 
+                            datos.clienteData ||
+                            datos.clienteInfo ||
                             pedido.cliente || 
                             pedido.Cliente ||
-                            datos.clienteInfo ||
-                            datos;
+                            pedido.clienteData ||
+                            {};
+
+                    console.log('REPARTIDOR - Pedido:', pedido);
+                    console.log('REPARTIDOR - Cliente:', cliente);
                 }
 
+                // Actualizar información básica
                 document.getElementById('accion-titulo').textContent = 
                     this.estado.modulo === 'almacen' ? 'Confirmar Registro' : 'Siguiente Acción';
 
+                // NOMBRE DEL CLIENTE - búsqueda exhaustiva
                 const nombreCliente = this.obtenerValorSeguro(cliente, [
-                    'Razón Social', 'razon_social', 'nombre', 'Cliente', 'RazonSocial', 'cliente_nombre'
-                ], 'Cliente N/A');
-                document.getElementById('accion-cliente').textContent = nombreCliente;
+                    'Razón Social', 'razon_social', 'RazonSocial', 'nombre', 'Cliente', 
+                    'cliente_nombre', 'nombreCliente', 'name', 'clientName'
+                ], this.obtenerValorSeguro(datos, [
+                    'cliente', 'Cliente', 'razon_social', 'nombreCliente'
+                ], 'Cliente N/A'));
 
+                document.getElementById('accion-cliente').textContent = nombreCliente;
+                console.log('Nombre cliente final:', nombreCliente);
+
+                // NÚMERO DE PEDIDO
                 const numeroPedido = this.estado.datosPendientes.numeroPedidoOrigen || 
                     this.obtenerValorSeguro(pedido, [
-                        'Numero_Pedido_Origen', 'numero_pedido_origen', 'numero_pedido', 'pedido_numero'
+                        'Numero_Pedido_Origen', 'numero_pedido_origen', 'numero_pedido', 
+                        'pedido_numero', 'numeroPedido', 'pedidoOrigen'
                     ], 'N/A');
                 document.getElementById('accion-pedido-origen').textContent = numeroPedido;
 
+                // NÚMERO DE FACTURA
                 const numeroFactura = this.obtenerValorSeguro(datos, [
-                    'numero_factura', 'NumeroFactura', 'factura_numero', 'folio'
+                    'numero_factura', 'NumeroFactura', 'factura_numero', 'folio', 'numeroFactura'
                 ], this.estado.datosPendientes.idPedido || 'N/A');
                 document.getElementById('accion-numero-factura').textContent = numeroFactura;
 
-                const direccion = this.construirDireccionCompleta(cliente);
+                // DIRECCIÓN COMPLETA
+                const direccion = this.construirDireccionCompleta(cliente, datos);
                 document.getElementById('accion-direccion').textContent = direccion;
+                console.log('Dirección final:', direccion);
 
+                // STATUS ACTUAL
                 let statusActual;
                 if (this.estado.modulo === 'almacen' && datos.status === 'NO_REGISTRADO') {
                     statusActual = 'Sin Facturar';
                 } else {
                     statusActual = this.obtenerValorSeguro(pedido, [
-                        'Status_Actual', 'status_actual', 'status', 'estado'
-                    ], 'Estado Desconocido');
+                        'Status_Actual', 'status_actual', 'status', 'estado', 'statusActual'
+                    ], this.obtenerValorSeguro(datos, [
+                        'status_actual', 'status', 'estado'
+                    ], 'Estado Desconocido'));
                 }
+
+                console.log('Status actual final:', statusActual);
 
                 const statusSpan = document.getElementById('accion-status');
                 statusSpan.textContent = statusActual;
@@ -1079,40 +1162,51 @@
                 for (const campo of campos) {
                     const valor = objeto[campo];
                     if (valor !== null && valor !== undefined && valor !== '') {
-                        return String(valor);
+                        return String(valor).trim();
                     }
                 }
 
                 return valorPorDefecto;
             }
 
-            construirDireccionCompleta(cliente) {
+            // DIRECCIÓN COMPLETA MEJORADA con fallbacks adicionales
+            construirDireccionCompleta(cliente, datosCompletos = {}) {
+                console.log('Construyendo dirección con:');
+                console.log('Cliente:', cliente);
+                console.log('Datos completos:', datosCompletos);
+
                 if (!cliente || typeof cliente !== 'object') {
-                    return 'Dirección no disponible';
+                    // Intentar extraer dirección de los datos completos si no hay cliente
+                    cliente = datosCompletos.direccion || datosCompletos.address || {};
                 }
 
+                // Buscar en múltiples ubicaciones posibles para cada campo
                 const calle = this.obtenerValorSeguro(cliente, [
-                    'Calle', 'calle', 'direccion', 'Direccion', 'street', 'domicilio'
+                    'Calle', 'calle', 'direccion', 'Direccion', 'street', 'domicilio', 'address'
                 ]);
                 
                 const numeroExt = this.obtenerValorSeguro(cliente, [
-                    'Num ext.', 'Num ext', 'numero_ext', 'numero', 'num_ext', 'number', 'NumExt'
+                    'Num ext.', 'Num ext', 'numero_ext', 'numero', 'num_ext', 'number', 'NumExt', 'numeroExterior'
                 ]);
                 
                 const colonia = this.obtenerValorSeguro(cliente, [
-                    'Colonia', 'colonia', 'neighborhood', 'barrio'
+                    'Colonia', 'colonia', 'neighborhood', 'barrio', 'colony'
                 ]);
                 
                 const cp = this.obtenerValorSeguro(cliente, [
-                    'CP', 'cp', 'codigo_postal', 'Codigo Postal', 'postal_code', 'zip', 'CodigoPostal'
+                    'CP', 'cp', 'codigo_postal', 'Codigo Postal', 'postal_code', 'zip', 'CodigoPostal', 'codigoPostal'
                 ]);
                 
                 const poblacion = this.obtenerValorSeguro(cliente, [
-                    'Población', 'poblacion', 'Ciudad', 'ciudad', 'Municipio', 'municipio', 'city'
+                    'Población', 'poblacion', 'Ciudad', 'ciudad', 'Municipio', 'municipio', 'city', 'town'
                 ]);
 
+                console.log('Campos extraídos:', { calle, numeroExt, colonia, cp, poblacion });
+
+                // Construir dirección paso a paso
                 const partesDireccion = [];
 
+                // Calle y número
                 if (calle && numeroExt) {
                     partesDireccion.push(`${calle} ${numeroExt}`);
                 } else if (calle) {
@@ -1121,19 +1215,25 @@
                     partesDireccion.push(`Núm. ${numeroExt}`);
                 }
 
+                // Colonia
                 if (colonia) {
                     partesDireccion.push(`Col. ${colonia}`);
                 }
 
+                // CP
                 if (cp) {
                     partesDireccion.push(`CP ${cp}`);
                 }
 
+                // Población
                 if (poblacion) {
                     partesDireccion.push(poblacion);
                 }
 
-                return partesDireccion.length > 0 ? partesDireccion.join(', ') : 'Dirección no disponible';
+                const direccionFinal = partesDireccion.length > 0 ? partesDireccion.join(', ') : 'Dirección no disponible';
+                console.log('Dirección construida:', direccionFinal);
+
+                return direccionFinal;
             }
 
             generarBotonesAccion(statusActual, statusRegistro) {
@@ -1178,7 +1278,7 @@
                             {
                                 texto: '✅ Entrega Exitosa',
                                 clase: 'btn-confirm',
-                                accion: () => this.prepararEntregaExitosa() // CAMBIADO AQUÍ
+                                accion: () => this.prepararEntregaExitosa()
                             },
                             {
                                 texto: '❌ Entrega Fallida',
@@ -1211,7 +1311,6 @@
                 }
             }
 
-            // NUEVO: Preparar captura de entrega exitosa
             prepararEntregaExitosa() {
                 // Limpiar datos previos
                 this.estado.fotoFactura = null;
@@ -1228,7 +1327,6 @@
                 this.cambiarVista('captura-entrega');
             }
 
-            // NUEVO: Confirmar entrega completa con todos los datos
             async confirmarEntregaCompleta() {
                 // Validar que al menos tenga la foto de la factura
                 if (!this.estado.fotoFactura) {
@@ -1246,7 +1344,7 @@
                     // Deshabilitar botón
                     const btnConfirmar = document.getElementById('btn-confirmar-entrega-completa');
                     btnConfirmar.disabled = true;
-                    btnConfirmar.innerHTML = '<span class="loading-spinner"></span>Procesando...';
+                    btnConfirmar.innerHTML = '<span class="loading-spinner"></span>Procesando entrega...';
 
                     this.mostrarMensaje('📸 Guardando documentación de entrega...', 'loading');
 
@@ -1265,12 +1363,22 @@
                         fechaEntrega: new Date().toISOString()
                     };
 
+                    console.log('Enviando payload de entrega:', {
+                        accion: payload.accion,
+                        idPedido: payload.idPedido,
+                        usuario: payload.usuario,
+                        tieneFoto: !!payload.fotoFactura,
+                        tieneFirma: !!payload.firmaCliente,
+                        infoAdicional: payload.infoAdicional
+                    });
+
                     const resultado = await this.enviarDatos(payload);
                     this.mostrarMensaje('✅ Entrega registrada correctamente con toda la documentación', 'success');
                     
                     setTimeout(() => this.volverAlInicio(), 4000);
 
                 } catch (error) {
+                    console.error('Error completo:', error);
                     this.mostrarMensaje(`Error al registrar entrega: ${error.message}`, 'error');
                     setTimeout(() => this.volverAlInicio(), 3000);
                 } finally {
@@ -1363,12 +1471,14 @@
                     const callbackName = 'callback_' + Date.now() + '_' + Math.random().toString(36).substring(2);
                     const timeoutId = setTimeout(() => {
                         this.limpiarCallback(callbackName);
-                        reject(new Error('Timeout: No se recibió respuesta del servidor'));
-                    }, 45000); // Aumentado por las imágenes
+                        reject(new Error('Timeout: No se recibió respuesta del servidor (45s)'));
+                    }, 45000); // Tiempo suficiente para imágenes
 
                     window[callbackName] = (response) => {
                         clearTimeout(timeoutId);
                         this.limpiarCallback(callbackName);
+                        
+                        console.log('Respuesta del servidor:', response);
                         
                         try {
                             if (response.status !== 'success') {
@@ -1383,6 +1493,8 @@
                     const url = new URL(this.SCRIPT_URL);
                     url.searchParams.append('data', JSON.stringify(payload));
                     url.searchParams.append('callback', callbackName);
+
+                    console.log('Enviando solicitud a:', url.href.substring(0, 100) + '...');
 
                     const script = document.createElement('script');
                     script.src = url.href;
@@ -1406,6 +1518,7 @@
                 }
             }
 
+            // MENSAJE EN EL CENTRO DE LA PANTALLA
             mostrarMensaje(mensaje, tipo = '') {
                 const statusDiv = document.getElementById('status-message');
                 statusDiv.textContent = mensaje;
@@ -1445,6 +1558,7 @@
                 this.estado.fotoFactura = null;
                 this.estado.firmaCliente = null;
                 this.estado.infoAdicional = '';
+                this.estado.datosOriginales = null;
 
                 // Resetear estado
                 this.estado.modulo = null;
