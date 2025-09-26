@@ -3,14 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Reparto</title>
+    <title>Sistema de Trazabilidad</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f9; color: #333; }
         .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1, h2 { color: #444; text-align: center; }
+        h1, h2 { color: #444; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-top: 0;}
         button { display: block; width: 100%; padding: 15px; font-size: 18px; font-weight: bold; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; transition: background-color 0.3s; }
         .btn-main { background-color: #007bff; }
         .btn-secondary { background-color: #6c757d; }
+        .btn-confirm { background-color: #28a745; }
+        .btn-cancel { background-color: #dc3545; }
         input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
         #lector-container { position: relative; width: 100%; padding-top: 75%; border: 2px solid #ccc; border-radius: 8px; overflow: hidden; margin-top: 20px; }
         #lector-qr { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
@@ -18,36 +20,48 @@
         #status-message { text-align: center; margin-top: 20px; font-weight: bold; padding: 10px; border-radius: 5px; }
         .status-success { background-color: #d4edda; color: #155724; }
         .status-error { background-color: #f8d7da; color: #721c24; }
+        #confirmacion-datos { border: 2px solid #007bff; padding: 15px; border-radius: 8px; margin-top: 20px; }
+        #confirmacion-datos p { margin: 5px 0; font-size: 16px; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>Sistema de Reparto</h1>
-
         <div id="vista-principal">
-            <h2>Selecciona tu Rol</h2>
-            <button type="button" id="btn-rol-almacen" class="btn-main">Jefe de Almacén</button>
-            <button type="button" id="btn-rol-repartidor" class="btn-secondary">Repartidor</button>
+            <h1>Sistema de Trazabilidad</h1>
+            <button type="button" id="btn-rol-almacen" class="btn-main">📦 Módulo de Almacén</button>
+            <button type="button" id="btn-rol-repartidor" class="btn-secondary">🚚 Módulo de Reparto</button>
         </div>
 
         <div id="vista-almacen" class="hidden">
-            <h2>Registrar Factura</h2>
-            <label for="numero-pedido">Número de Pedido Original:</label>
-            <input type="text" id="numero-pedido" placeholder="Ej: P-801">
-            <label for="nombre-surtidor-almacen">Tu Nombre (o de quien surte):</label>
-            <input type="text" id="nombre-surtidor-almacen" placeholder="Escribe un nombre">
-            <button type="button" id="btn-escanear-factura" class="btn-main">📸 Escanear Factura</button>
-            <button type="button" id="btn-volver-almacen" class="btn-secondary">Volver</button>
+            <h2>Módulo de Almacén</h2>
+            <div id="form-almacen">
+                <label for="numero-pedido">Número de Pedido Original:</label>
+                <input type="text" id="numero-pedido" placeholder="Ej: P-801">
+                <label for="nombre-surtidor-almacen">Tu Nombre:</label>
+                <input type="text" id="nombre-surtidor-almacen" placeholder="Escribe tu nombre">
+                <button type="button" id="btn-escanear-factura" class="btn-main">📸 Escanear Factura</button>
+            </div>
+            <div id="confirmacion-datos" class="hidden">
+                <h3>Verifica los Datos</h3>
+                <p><strong>Cliente:</strong> <span id="conf-cliente"></span></p>
+                <p><strong>RFC:</strong> <span id="conf-rfc"></span></p>
+                <p><strong>Dirección:</strong> <span id="conf-direccion"></span></p>
+                <p><strong>Nº Pedido:</strong> <span id="conf-pedido"></span></p>
+                <p><strong>Folio Fiscal:</strong> <span id="conf-folio"></span></p>
+                <button type="button" id="btn-confirmar-registro" class="btn-confirm">✅ Confirmar y Registrar</button>
+                <button type="button" id="btn-cancelar-registro" class="btn-cancel">❌ Cancelar</button>
+            </div>
+            <button type="button" id="btn-volver-almacen" class="btn-secondary">Volver al Inicio</button>
         </div>
 
         <div id="vista-repartidor" class="hidden">
-            <h2>Actualizar Status</h2>
+            <h2>Módulo de Reparto</h2>
              <label for="nombre-repartidor">Tu Nombre (Repartidor):</label>
             <input type="text" id="nombre-repartidor" placeholder="Escribe tu nombre">
             <button type="button" id="btn-escanear-transito" class="btn-main">🚚 Escanear para "En Tránsito"</button>
             <button type="button" id="btn-escanear-entregado" class="btn-secondary">✅ Escanear para "Entregado"</button>
-            <button type="button" id="btn-volver-repartidor" class="btn-secondary">Volver</button>
+            <button type="button" id="btn-volver-repartidor" class="btn-secondary">Volver al Inicio</button>
         </div>
         
         <div id="lector-container" class="hidden">
@@ -63,70 +77,97 @@
         
         let modoActual = null;
         let qrScannerInstance;
+        let datosPendientes = {};
 
-        const vistaPrincipal = document.getElementById('vista-principal');
-        const vistaAlmacen = document.getElementById('vista-almacen');
-        const vistaRepartidor = document.getElementById('vista-repartidor');
-        const lectorContainer = document.getElementById('lector-container');
-        const videoElement = document.getElementById('lector-qr');
+        const vistas = {
+            principal: document.getElementById('vista-principal'),
+            almacen: document.getElementById('vista-almacen'),
+            repartidor: document.getElementById('vista-repartidor'),
+            lector: document.getElementById('lector-container'),
+            confirmacion: document.getElementById('confirmacion-datos'),
+            formAlmacen: document.getElementById('form-almacen'),
+        };
         const statusMessage = document.getElementById('status-message');
+        const videoElement = document.getElementById('lector-qr');
 
         // Navegación
-        document.getElementById('btn-rol-almacen').addEventListener('click', () => { vistaPrincipal.classList.add('hidden'); vistaAlmacen.classList.remove('hidden'); });
-        document.getElementById('btn-rol-repartidor').addEventListener('click', () => { vistaPrincipal.classList.add('hidden'); vistaRepartidor.classList.remove('hidden'); });
+        document.getElementById('btn-rol-almacen').addEventListener('click', () => cambiarVista('almacen'));
+        document.getElementById('btn-rol-repartidor').addEventListener('click', () => cambiarVista('repartidor'));
         document.getElementById('btn-volver-almacen').addEventListener('click', () => location.reload());
         document.getElementById('btn-volver-repartidor').addEventListener('click', () => location.reload());
+        document.getElementById('btn-cancelar-registro').addEventListener('click', () => location.reload());
+
+        function cambiarVista(vista) {
+            Object.values(vistas).forEach(v => v.classList.add('hidden'));
+            if (vistas[vista]) vistas[vista].classList.remove('hidden');
+            if (vista === 'almacen') vistas.formAlmacen.classList.remove('hidden');
+        }
         
         function iniciarScanner(modo) {
             modoActual = modo;
-            vistaPrincipal.classList.add('hidden');
-            vistaAlmacen.classList.add('hidden');
-            vistaRepartidor.classList.add('hidden');
-            lectorContainer.classList.remove('hidden');
-
-            qrScannerInstance = new QrScanner(
-                videoElement,
-                result => onScanSuccess(result.data),
-                { highlightScanRegion: true, highlightCodeOutline: true }
-            );
-
+            vistas.almacen.classList.add('hidden');
+            vistas.repartidor.classList.add('hidden');
+            vistas.lector.classList.remove('hidden');
+            qrScannerInstance = new QrScanner(videoElement, result => onScanSuccess(result.data), { highlightScanRegion: true });
             qrScannerInstance.start().catch(err => mostrarMensaje(`Error al iniciar cámara: ${err}`, 'error'));
         }
         
         function detenerScanner() {
-            if (qrScannerInstance) {
-                qrScannerInstance.stop();
-                qrScannerInstance.destroy();
-                lectorContainer.classList.add('hidden');
-            }
+            if (qrScannerInstance) { qrScannerInstance.stop(); qrScannerInstance.destroy(); }
+            vistas.lector.classList.add('hidden');
         }
         
         async function onScanSuccess(decodedText) {
             detenerScanner();
-            mostrarMensaje("Procesando...", "");
+            mostrarMensaje("Procesando QR...", "");
             try {
                 const url = new URL(decodedText);
                 const urlParams = new URLSearchParams(url.search);
                 const idPedido = urlParams.get('id');
                 const rfc = urlParams.get('rr');
                 if (!idPedido) throw new Error("El QR no parece ser una factura válida.");
-                let payload;
+
                 if (modoActual === 'registrar') {
                     const numeroPedido = document.getElementById('numero-pedido').value;
                     const surtidor = document.getElementById('nombre-surtidor-almacen').value;
                     if (!numeroPedido.trim() || !surtidor.trim()) throw new Error("Rellena el número de pedido y tu nombre.");
-                    payload = { accion: 'registrar_factura', idPedido, rfc: rfc || "SIN_RFC", numeroPedidoOrigen: numeroPedido, surtidor };
+                    
+                    datosPendientes = { numeroPedido, surtidor, idPedido, rfc };
+                    await enviarDatosAlScript({ accion: 'validar_factura', rfc });
                 } else {
                     const usuario = document.getElementById('nombre-repartidor').value;
                     if(!usuario.trim()) throw new Error("Rellena tu nombre de repartidor.");
-                    payload = { accion: 'actualizar_status', idPedido, nuevoStatus: modoActual, usuario };
+                    const payload = { accion: 'actualizar_status', idPedido, nuevoStatus: modoActual, usuario };
                     if (modoActual === 'Entregado') payload.ubicacion = await obtenerUbicacion();
+                    await enviarDatosAlScript(payload);
                 }
-                await enviarDatosAlScript(payload);
             } catch (error) {
                 mostrarMensaje(`Error: ${error.message}`, 'error');
                 setTimeout(() => location.reload(), 4000);
             }
+        }
+
+        document.getElementById('btn-confirmar-registro').addEventListener('click', async () => {
+            const payload = {
+                accion: 'registrar_factura',
+                idPedido: datosPendientes.idPedido,
+                rfc: datosPendientes.rfc,
+                numeroPedidoOrigen: datosPendientes.numeroPedido,
+                surtidor: datosPendientes.surtidor,
+                razonSocial: document.getElementById('conf-cliente').textContent
+            };
+            await enviarDatosAlScript(payload);
+        });
+
+        function mostrarPantallaConfirmacion(cliente) {
+            cambiarVista('almacen');
+            vistas.formAlmacen.classList.add('hidden');
+            vistas.confirmacion.classList.remove('hidden');
+            document.getElementById('conf-cliente').textContent = cliente['Razón Social'] || 'N/A';
+            document.getElementById('conf-rfc').textContent = cliente.RFC || 'N/A';
+            document.getElementById('conf-direccion').textContent = `${cliente.Calle || ''} ${cliente['Num ext.'] || ''}, ${cliente.Colonia || ''}`.trim();
+            document.getElementById('conf-pedido').textContent = datosPendientes.numeroPedido;
+            document.getElementById('conf-folio').textContent = datosPendientes.idPedido.substring(0, 8) + '...';
         }
         
         async function enviarDatosAlScript(payload) {
@@ -136,16 +177,18 @@
             try {
                 const response = await fetch(urlConDatos, { method: 'GET' });
                 const result = await response.json();
-                if (result.status === 'success') {
-                    mostrarMensaje(result.data, 'success');
+                if (result.status !== 'success') throw new Error(result.message);
+
+                if (payload.accion === 'validar_factura') {
+                    mostrarPantallaConfirmacion(result.data);
                 } else {
-                    throw new Error(result.message);
+                    mostrarMensaje(result.data, 'success');
+                    setTimeout(() => location.reload(), 4000);
                 }
             } catch (error) {
                 mostrarMensaje(`Error de comunicación: ${error.message}`, 'error');
                 console.error("Error en Fetch:", error);
-            } finally {
-                setTimeout(() => location.reload(), 4000);
+                 setTimeout(() => location.reload(), 4000);
             }
         }
 
@@ -153,14 +196,8 @@
             return new Promise(resolve => {
                 if (!navigator.geolocation) return resolve("Geolocalización no soportada");
                 navigator.geolocation.getCurrentPosition(
-                    p => {
-                        // ===== CORRECCIÓN FINAL DE LA URL DE GOOGLE MAPS =====
-                        const lat = p.coords.latitude;
-                        const lon = p.coords.longitude;
-                        resolve(`https://maps.google.com/?q=$?q=${lat},${lon}`);
-                    },
-                    () => resolve("No se pudo obtener la ubicación"),
-                    { timeout: 10000 }
+                    p => resolve(`http://googleusercontent.com/maps.google.com/9{p.coords.latitude},${p.coords.longitude}`),
+                    () => resolve("No se pudo obtener la ubicación"), { timeout: 10000 }
                 );
             });
         }
