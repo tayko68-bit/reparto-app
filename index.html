@@ -97,7 +97,7 @@
             color: var(--text-color);
         }
 
-        input, select {
+        input, select, textarea {
             width: 100%;
             padding: 14px;
             margin-bottom: 15px;
@@ -106,38 +106,53 @@
             font-size: 16px;
             background-color: #fcfcfc;
             transition: border-color 0.3s ease;
+            font-family: inherit;
         }
 
-        input:focus, select:focus {
+        input:focus, select:focus, textarea:focus {
             outline: none;
             border-color: var(--primary-color);
         }
 
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        /* MENSAJE DE ESTADO FIJO EN LA PARTE SUPERIOR */
         .status-message {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2000;
+            max-width: 90%;
+            width: auto;
+            min-width: 300px;
             text-align: center;
-            margin: 20px 0;
             font-weight: bold;
-            padding: 12px;
+            padding: 15px 20px;
             border-radius: 8px;
-            min-height: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
         }
 
         .status-success {
             background-color: #d4edda;
             color: #155724;
-            border: 1px solid #c3e6cb;
+            border: 2px solid #c3e6cb;
         }
 
         .status-error {
             background-color: #f8d7da;
             color: #721c24;
-            border: 1px solid #f5c6cb;
+            border: 2px solid #f5c6cb;
         }
 
         .status-loading {
             background-color: #d1ecf1;
             color: #0c5460;
-            border: 1px solid #bee5eb;
+            border: 2px solid #bee5eb;
         }
 
         .info-card {
@@ -198,7 +213,50 @@
         .status-En\.Almacén\.KATEX_INLINE_OPENDevoluciónKATEX_INLINE_CLOSE { background-color: var(--danger-color); }
         .status-Entrega\.Fallida { background-color: var(--danger-color); }
 
-        #lector-container {
+        /* ESTILOS PARA CAPTURA DE ENTREGA */
+        .captura-container {
+            margin: 20px 0;
+            padding: 15px;
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .foto-preview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 2px solid var(--border-color);
+        }
+
+        .firma-canvas {
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            width: 100%;
+            height: 200px;
+            cursor: crosshair;
+            background-color: white;
+        }
+
+        .firma-container {
+            margin: 20px 0;
+        }
+
+        .canvas-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .canvas-controls button {
+            flex: 1;
+            margin: 0;
+            padding: 10px;
+            font-size: 14px;
+        }
+
+        #lector-container, #camara-container {
             position: fixed;
             top: 0;
             left: 0;
@@ -213,7 +271,7 @@
             padding: 20px;
         }
 
-        #lector-qr {
+        #lector-qr, #camara-video {
             width: 90%;
             max-width: 400px;
             height: 300px;
@@ -222,18 +280,18 @@
             border: 3px solid white;
         }
 
-        .scanner-header {
+        .scanner-header, .camara-header {
             color: white;
             text-align: center;
             margin-bottom: 20px;
         }
 
-        .scanner-header h3 {
+        .scanner-header h3, .camara-header h3 {
             margin: 0 0 10px 0;
             font-size: 1.5em;
         }
 
-        .scanner-tip {
+        .scanner-tip, .camara-tip {
             background-color: rgba(255,255,255,0.1);
             color: white;
             padding: 10px;
@@ -243,7 +301,7 @@
             font-size: 14px;
         }
 
-        .close-scanner {
+        .close-scanner, .close-camara, .capture-photo {
             background-color: var(--danger-color);
             color: white;
             border: none;
@@ -252,7 +310,11 @@
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            margin-top: 20px;
+            margin: 10px;
+        }
+
+        .capture-photo {
+            background-color: var(--success-color);
         }
 
         .descripcion {
@@ -292,7 +354,7 @@
                 padding: 14px;
             }
 
-            #lector-qr {
+            #lector-qr, #camara-video {
                 width: 95%;
                 height: 250px;
             }
@@ -303,6 +365,17 @@
 
             .direccion-completa {
                 max-width: calc(100% - 130px);
+            }
+
+            .status-message {
+                top: 5px;
+                min-width: 250px;
+                font-size: 14px;
+                padding: 12px 15px;
+            }
+
+            .canvas-controls {
+                flex-direction: column;
             }
         }
     </style>
@@ -362,11 +435,53 @@
             <div class="info-card">
                 <h3 id="accion-cliente"></h3>
                 <p><strong>Nº Pedido:</strong> <span id="accion-pedido-origen"></span></p>
-                <p><strong>Folio Fiscal:</strong> <span id="accion-folio"></span></p>
+                <p><strong>Nº Factura:</strong> <span id="accion-numero-factura"></span></p>
                 <p><strong>Dirección:</strong> <span id="accion-direccion" class="direccion-completa"></span></p>
                 <p><strong>Status Actual:</strong> <span id="accion-status" class="status-tag"></span></p>
             </div>
             <div id="acciones-botones"></div>
+            <button type="button" class="btn-cancel btn-volver">
+                ❌ Cancelar
+            </button>
+        </div>
+
+        <!-- Vista Captura de Entrega Exitosa -->
+        <div id="vista-captura-entrega" class="vista hidden">
+            <h2>📸 Documentar Entrega Exitosa</h2>
+            <p class="descripcion">Captura la documentación necesaria para completar la entrega</p>
+            
+            <!-- Captura de Factura Firmada -->
+            <div class="captura-container">
+                <h4>📄 Factura Firmada (Obligatorio)</h4>
+                <img id="foto-factura-preview" class="foto-preview hidden" alt="Preview factura">
+                <button type="button" id="btn-capturar-factura" class="btn-main">
+                    📸 Capturar Factura Firmada
+                </button>
+            </div>
+
+            <!-- Información Adicional -->
+            <label for="info-adicional">📝 Información Adicional (Opcional)</label>
+            <textarea id="info-adicional" placeholder="Ej: Guía de remisión: GR-12345, Observaciones especiales, etc."></textarea>
+
+            <!-- Firma del Cliente -->
+            <div class="firma-container">
+                <label>✍️ Firma del Cliente (Opcional)</label>
+                <canvas id="firma-canvas" class="firma-canvas"></canvas>
+                <div class="canvas-controls">
+                    <button type="button" id="btn-limpiar-firma" class="btn-secondary">
+                        🗑️ Limpiar Firma
+                    </button>
+                    <button type="button" id="btn-guardar-firma" class="btn-warning">
+                        💾 Vista Previa Firma
+                    </button>
+                </div>
+                <img id="firma-preview" class="foto-preview hidden" alt="Preview firma">
+            </div>
+
+            <!-- Botones Finales -->
+            <button type="button" id="btn-confirmar-entrega-completa" class="btn-confirm">
+                ✅ Confirmar Entrega Exitosa
+            </button>
             <button type="button" class="btn-cancel btn-volver">
                 ❌ Cancelar
             </button>
@@ -392,7 +507,7 @@
             </button>
         </div>
 
-        <!-- Scanner -->
+        <!-- Scanner QR -->
         <div id="lector-container" class="hidden">
             <div class="scanner-header">
                 <h3>📸 Escanear Código QR</h3>
@@ -406,11 +521,30 @@
             </button>
         </div>
 
-        <!-- Mensajes de estado -->
-        <div class="status-message" id="status-message"></div>
+        <!-- Cámara para Fotos -->
+        <div id="camara-container" class="hidden">
+            <div class="camara-header">
+                <h3 id="camara-titulo">📸 Capturar Foto</h3>
+                <div class="camara-tip">
+                    Posiciona el documento dentro del marco
+                </div>
+            </div>
+            <video id="camara-video" autoplay muted playsinline></video>
+            <div>
+                <button type="button" class="capture-photo">
+                    📸 Tomar Foto
+                </button>
+                <button type="button" class="close-camara">
+                    ❌ Cancelar
+                </button>
+            </div>
+        </div>
     </div>
 
-    <!-- Librería QR Scanner (la original que funcionaba bien) -->
+    <!-- Mensaje de estado FIJO en la parte superior -->
+    <div class="status-message hidden" id="status-message"></div>
+
+    <!-- Librería QR Scanner -->
     <script src="https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner.umd.min.js"></script>
     
     <script>
@@ -421,16 +555,84 @@
                 this.estado = {
                     modulo: null,
                     scanner: null,
+                    cameraStream: null,
                     datosPendientes: {},
-                    procesandoAccion: false // Flag para prevenir registro doble
+                    procesandoAccion: false,
+                    // Datos de entrega
+                    fotoFactura: null,
+                    firmaCliente: null,
+                    infoAdicional: ''
                 };
                 this.inicializar();
             }
 
             inicializar() {
                 this.bindearEventos();
+                this.inicializarFirma();
                 this.mostrarMensaje('Sistema listo para usar', 'success');
                 setTimeout(() => this.limpiarMensaje(), 2000);
+            }
+
+            inicializarFirma() {
+                const canvas = document.getElementById('firma-canvas');
+                const ctx = canvas.getContext('2d');
+                let dibujando = false;
+
+                // Ajustar canvas al contenedor
+                const resizeCanvas = () => {
+                    const rect = canvas.getBoundingClientRect();
+                    canvas.width = rect.width;
+                    canvas.height = rect.height;
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 2;
+                    ctx.lineCap = 'round';
+                };
+
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+
+                // Eventos de dibujo
+                canvas.addEventListener('mousedown', (e) => {
+                    dibujando = true;
+                    const rect = canvas.getBoundingClientRect();
+                    ctx.beginPath();
+                    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+                });
+
+                canvas.addEventListener('mousemove', (e) => {
+                    if (!dibujando) return;
+                    const rect = canvas.getBoundingClientRect();
+                    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+                    ctx.stroke();
+                });
+
+                canvas.addEventListener('mouseup', () => {
+                    dibujando = false;
+                });
+
+                // Touch events para móviles
+                canvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    dibujando = true;
+                    const rect = canvas.getBoundingClientRect();
+                    const touch = e.touches[0];
+                    ctx.beginPath();
+                    ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+                });
+
+                canvas.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    if (!dibujando) return;
+                    const rect = canvas.getBoundingClientRect();
+                    const touch = e.touches[0];
+                    ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+                    ctx.stroke();
+                });
+
+                canvas.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    dibujando = false;
+                });
             }
 
             bindearEventos() {
@@ -459,9 +661,34 @@
                     btn.addEventListener('click', () => this.volverAlInicio());
                 });
 
-                // Cerrar scanner
+                // Scanner y cámara
                 document.querySelector('.close-scanner').addEventListener('click', () => {
                     this.detenerScanner();
+                });
+
+                document.querySelector('.close-camara').addEventListener('click', () => {
+                    this.detenerCamara();
+                });
+
+                document.querySelector('.capture-photo').addEventListener('click', () => {
+                    this.capturarFoto();
+                });
+
+                // Captura de entrega
+                document.getElementById('btn-capturar-factura').addEventListener('click', () => {
+                    this.iniciarCapturarFactura();
+                });
+
+                document.getElementById('btn-limpiar-firma').addEventListener('click', () => {
+                    this.limpiarFirma();
+                });
+
+                document.getElementById('btn-guardar-firma').addEventListener('click', () => {
+                    this.guardarFirma();
+                });
+
+                document.getElementById('btn-confirmar-entrega-completa').addEventListener('click', () => {
+                    this.confirmarEntregaCompleta();
                 });
 
                 // Confirmar fallo
@@ -472,14 +699,13 @@
 
             cambiarVista(vista) {
                 // Ocultar todas las vistas
-                document.querySelectorAll('.vista, #lector-container').forEach(v => {
+                document.querySelectorAll('.vista, #lector-container, #camara-container').forEach(v => {
                     v.classList.add('hidden');
                 });
 
                 // Mostrar vista solicitada
                 const elemento = document.getElementById(`vista-${vista}`) || 
-                                document.getElementById(`${vista}-container`) ||
-                                document.getElementById('lector-container');
+                                document.getElementById(`${vista}-container`);
                 if (elemento) {
                     elemento.classList.remove('hidden');
                 }
@@ -522,17 +748,14 @@
 
                     const videoElement = document.getElementById('lector-qr');
                     
-                    // Configurar QrScanner para usar cámara trasera automáticamente
                     this.estado.scanner = new QrScanner(
                         videoElement,
                         result => this.onScanSuccess(result.data),
                         {
-                            // Configuración para preferir cámara trasera
                             preferredCamera: 'environment',
                             highlightScanRegion: true,
                             highlightCodeOutline: true,
                             maxScansPerSecond: 5,
-                            // Configuración de la región de escaneo
                             calculateScanRegion: (video) => {
                                 const smallestDimension = Math.min(video.videoWidth, video.videoHeight);
                                 const scanRegionSize = Math.round(0.75 * smallestDimension);
@@ -573,9 +796,104 @@
                 this.cambiarVista(vistaAnterior);
             }
 
+            // CAPTURA DE FOTOS
+            async iniciarCapturarFactura() {
+                try {
+                    this.cambiarVista('camara');
+                    document.getElementById('camara-titulo').textContent = '📄 Capturar Factura Firmada';
+                    this.mostrarMensaje('Iniciando cámara para factura...', 'loading');
+
+                    const videoElement = document.getElementById('camara-video');
+                    this.estado.cameraStream = await navigator.mediaDevices.getUserMedia({
+                        video: { 
+                            facingMode: 'environment',
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        }
+                    });
+                    
+                    videoElement.srcObject = this.estado.cameraStream;
+                    this.limpiarMensaje();
+
+                } catch (error) {
+                    console.error('Error al iniciar cámara:', error);
+                    this.mostrarMensaje(`Error al acceder a la cámara: ${error.message}`, 'error');
+                    this.cambiarVista('captura-entrega');
+                }
+            }
+
+            capturarFoto() {
+                const video = document.getElementById('camara-video');
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0);
+
+                // Convertir a base64
+                const fotoBase64 = canvas.toDataURL('image/jpeg', 0.8);
+                
+                // Guardar la foto
+                this.estado.fotoFactura = fotoBase64;
+                
+                // Mostrar preview
+                const preview = document.getElementById('foto-factura-preview');
+                preview.src = fotoBase64;
+                preview.classList.remove('hidden');
+                
+                // Cambiar texto del botón
+                document.getElementById('btn-capturar-factura').textContent = '✅ Factura Capturada - Recapturar';
+                
+                this.detenerCamara();
+                this.mostrarMensaje('📄 Factura capturada correctamente', 'success');
+            }
+
+            detenerCamara() {
+                if (this.estado.cameraStream) {
+                    this.estado.cameraStream.getTracks().forEach(track => track.stop());
+                    this.estado.cameraStream = null;
+                }
+                this.cambiarVista('captura-entrega');
+            }
+
+            // MANEJO DE FIRMA
+            limpiarFirma() {
+                const canvas = document.getElementById('firma-canvas');
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Ocultar preview
+                document.getElementById('firma-preview').classList.add('hidden');
+                this.estado.firmaCliente = null;
+            }
+
+            guardarFirma() {
+                const canvas = document.getElementById('firma-canvas');
+                const firmaBase64 = canvas.toDataURL('image/png');
+                
+                // Verificar si hay algo dibujado
+                const ctx = canvas.getContext('2d');
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const hayDibujo = imageData.data.some(channel => channel !== 0);
+                
+                if (!hayDibujo) {
+                    this.mostrarMensaje('No hay firma para guardar', 'error');
+                    return;
+                }
+                
+                this.estado.firmaCliente = firmaBase64;
+                
+                // Mostrar preview
+                const preview = document.getElementById('firma-preview');
+                preview.src = firmaBase64;
+                preview.classList.remove('hidden');
+                
+                this.mostrarMensaje('✍️ Firma guardada correctamente', 'success');
+            }
+
             async onScanSuccess(decodedText) {
                 try {
-                    // Prevenir múltiples escaneos del mismo código
                     if (this.estado.procesandoAccion) {
                         console.log('Ya se está procesando un QR, ignorando...');
                         return;
@@ -585,13 +903,9 @@
                     this.detenerScanner();
                     this.mostrarMensaje('Código escaneado, procesando...', 'loading');
 
-                    // Validar QR
                     const qrData = this.validarQR(decodedText);
-                    
-                    // Obtener ubicación
                     const ubicacion = await this.obtenerUbicacion();
 
-                    // Preparar datos
                     this.estado.datosPendientes = {
                         idPedido: qrData.id,
                         rfc: qrData.rfc || "SIN_RFC",
@@ -605,7 +919,6 @@
                         this.estado.datosPendientes.usuario = document.getElementById('nombre-repartidor').value.trim();
                     }
 
-                    // Consultar factura
                     await this.consultarFactura();
 
                 } catch (error) {
@@ -627,7 +940,6 @@
                         throw new Error('QR no contiene ID válido');
                     }
 
-                    // Validación básica del formato de ID
                     if (!/^[A-Za-z0-9\-_]+$/.test(id)) {
                         throw new Error('Formato de ID inválido');
                     }
@@ -698,72 +1010,67 @@
             }
 
             mostrarFichaDeAccion(datos, clienteInfo = null) {
-                console.log('Datos recibidos:', datos); // Debug
-                console.log('Cliente info:', clienteInfo); // Debug
+                console.log('=== DEBUG FICHA DE ACCIÓN ===');
+                console.log('Datos completos recibidos:', JSON.stringify(datos, null, 2));
 
-                const pedido = datos.pedido || datos || {};
-                let cliente = clienteInfo || pedido;
+                let pedido, cliente;
 
-                // Para repartidor, si no hay clienteInfo, intentar obtener del pedido
-                if (this.estado.modulo === 'repartidor' && !clienteInfo) {
-                    // Buscar información del cliente en diferentes ubicaciones posibles
-                    cliente = pedido.cliente || pedido.Cliente || pedido;
+                if (this.estado.modulo === 'almacen') {
+                    pedido = datos.pedido || datos || {};
+                    cliente = clienteInfo || pedido;
+                } else {
+                    pedido = datos.pedido || datos;
+                    cliente = datos.cliente || 
+                            datos.Cliente || 
+                            pedido.cliente || 
+                            pedido.Cliente ||
+                            datos.clienteInfo ||
+                            datos;
                 }
 
-                console.log('Pedido final:', pedido); // Debug
-                console.log('Cliente final:', cliente); // Debug
-
-                // Actualizar información básica
                 document.getElementById('accion-titulo').textContent = 
                     this.estado.modulo === 'almacen' ? 'Confirmar Registro' : 'Siguiente Acción';
 
-                document.getElementById('accion-cliente').textContent = 
-                    this.obtenerValorSeguro(cliente, ['Razón Social', 'razon_social', 'nombre', 'Cliente'], 'Cliente N/A');
+                const nombreCliente = this.obtenerValorSeguro(cliente, [
+                    'Razón Social', 'razon_social', 'nombre', 'Cliente', 'RazonSocial', 'cliente_nombre'
+                ], 'Cliente N/A');
+                document.getElementById('accion-cliente').textContent = nombreCliente;
 
-                document.getElementById('accion-pedido-origen').textContent = 
-                    this.estado.datosPendientes.numeroPedidoOrigen || 
-                    this.obtenerValorSeguro(pedido, ['Numero_Pedido_Origen', 'numero_pedido_origen', 'numero_pedido'], 'N/A');
+                const numeroPedido = this.estado.datosPendientes.numeroPedidoOrigen || 
+                    this.obtenerValorSeguro(pedido, [
+                        'Numero_Pedido_Origen', 'numero_pedido_origen', 'numero_pedido', 'pedido_numero'
+                    ], 'N/A');
+                document.getElementById('accion-pedido-origen').textContent = numeroPedido;
 
-                document.getElementById('accion-folio').textContent = 
-                    this.estado.datosPendientes.idPedido || 'N/A';
+                const numeroFactura = this.obtenerValorSeguro(datos, [
+                    'numero_factura', 'NumeroFactura', 'factura_numero', 'folio'
+                ], this.estado.datosPendientes.idPedido || 'N/A');
+                document.getElementById('accion-numero-factura').textContent = numeroFactura;
 
                 const direccion = this.construirDireccionCompleta(cliente);
                 document.getElementById('accion-direccion').textContent = direccion;
 
-                // Status actual - CORREGIDO PARA REPARTIDOR
                 let statusActual;
                 if (this.estado.modulo === 'almacen' && datos.status === 'NO_REGISTRADO') {
                     statusActual = 'Sin Facturar';
                 } else {
-                    // Para repartidor, obtener el status del pedido
                     statusActual = this.obtenerValorSeguro(pedido, [
-                        'Status_Actual', 
-                        'status_actual', 
-                        'status', 
-                        'estado'
+                        'Status_Actual', 'status_actual', 'status', 'estado'
                     ], 'Estado Desconocido');
                 }
 
-                console.log('Status actual determinado:', statusActual); // Debug
-
                 const statusSpan = document.getElementById('accion-status');
                 statusSpan.textContent = statusActual;
-                
-                // Limpiar clases CSS previas y agregar la nueva
                 statusSpan.className = 'status-tag';
                 const statusClass = 'status-' + statusActual.replace(/\s+/g, '\\.');
                 statusSpan.classList.add(statusClass);
 
-                console.log('Clase CSS aplicada:', statusClass); // Debug
-
-                // Generar botones de acción
                 this.generarBotonesAccion(statusActual, datos.status);
 
                 this.cambiarVista('accion');
                 this.limpiarMensaje();
             }
 
-            // Función auxiliar para obtener valores de forma segura
             obtenerValorSeguro(objeto, campos, valorPorDefecto = '') {
                 if (!objeto || typeof objeto !== 'object') {
                     return valorPorDefecto;
@@ -779,21 +1086,17 @@
                 return valorPorDefecto;
             }
 
-            // DIRECCIÓN COMPLETA MEJORADA - busca en más ubicaciones
             construirDireccionCompleta(cliente) {
                 if (!cliente || typeof cliente !== 'object') {
                     return 'Dirección no disponible';
                 }
 
-                console.log('Construyendo dirección para:', cliente); // Debug
-
-                // Buscar en múltiples ubicaciones posibles para cada campo
                 const calle = this.obtenerValorSeguro(cliente, [
-                    'Calle', 'calle', 'direccion', 'Direccion', 'street'
+                    'Calle', 'calle', 'direccion', 'Direccion', 'street', 'domicilio'
                 ]);
                 
                 const numeroExt = this.obtenerValorSeguro(cliente, [
-                    'Num ext.', 'Num ext', 'numero_ext', 'numero', 'num_ext', 'number'
+                    'Num ext.', 'Num ext', 'numero_ext', 'numero', 'num_ext', 'number', 'NumExt'
                 ]);
                 
                 const colonia = this.obtenerValorSeguro(cliente, [
@@ -801,19 +1104,15 @@
                 ]);
                 
                 const cp = this.obtenerValorSeguro(cliente, [
-                    'CP', 'cp', 'codigo_postal', 'Codigo Postal', 'postal_code', 'zip'
+                    'CP', 'cp', 'codigo_postal', 'Codigo Postal', 'postal_code', 'zip', 'CodigoPostal'
                 ]);
                 
                 const poblacion = this.obtenerValorSeguro(cliente, [
                     'Población', 'poblacion', 'Ciudad', 'ciudad', 'Municipio', 'municipio', 'city'
                 ]);
 
-                console.log('Campos encontrados:', { calle, numeroExt, colonia, cp, poblacion }); // Debug
-
-                // Construir dirección paso a paso
                 const partesDireccion = [];
 
-                // Calle y número
                 if (calle && numeroExt) {
                     partesDireccion.push(`${calle} ${numeroExt}`);
                 } else if (calle) {
@@ -822,25 +1121,19 @@
                     partesDireccion.push(`Núm. ${numeroExt}`);
                 }
 
-                // Colonia
                 if (colonia) {
                     partesDireccion.push(`Col. ${colonia}`);
                 }
 
-                // CP
                 if (cp) {
                     partesDireccion.push(`CP ${cp}`);
                 }
 
-                // Población
                 if (poblacion) {
                     partesDireccion.push(poblacion);
                 }
 
-                const direccionFinal = partesDireccion.length > 0 ? partesDireccion.join(', ') : 'Dirección no disponible';
-                console.log('Dirección final:', direccionFinal); // Debug
-
-                return direccionFinal;
+                return partesDireccion.length > 0 ? partesDireccion.join(', ') : 'Dirección no disponible';
             }
 
             generarBotonesAccion(statusActual, statusRegistro) {
@@ -885,7 +1178,7 @@
                             {
                                 texto: '✅ Entrega Exitosa',
                                 clase: 'btn-confirm',
-                                accion: () => this.actualizarStatus('Entregado')
+                                accion: () => this.prepararEntregaExitosa() // CAMBIADO AQUÍ
                             },
                             {
                                 texto: '❌ Entrega Fallida',
@@ -918,10 +1211,32 @@
                 }
             }
 
-            async registrarFactura() {
-                // PREVENIR REGISTRO DOBLE
+            // NUEVO: Preparar captura de entrega exitosa
+            prepararEntregaExitosa() {
+                // Limpiar datos previos
+                this.estado.fotoFactura = null;
+                this.estado.firmaCliente = null;
+                this.estado.infoAdicional = '';
+
+                // Limpiar interfaz
+                document.getElementById('foto-factura-preview').classList.add('hidden');
+                document.getElementById('firma-preview').classList.add('hidden');
+                document.getElementById('info-adicional').value = '';
+                document.getElementById('btn-capturar-factura').textContent = '📸 Capturar Factura Firmada';
+                this.limpiarFirma();
+
+                this.cambiarVista('captura-entrega');
+            }
+
+            // NUEVO: Confirmar entrega completa con todos los datos
+            async confirmarEntregaCompleta() {
+                // Validar que al menos tenga la foto de la factura
+                if (!this.estado.fotoFactura) {
+                    this.mostrarMensaje('❌ Debes capturar la factura firmada para continuar', 'error');
+                    return;
+                }
+
                 if (this.estado.procesandoAccion) {
-                    console.log('Ya se está procesando una acción, ignorando...');
                     return;
                 }
 
@@ -929,6 +1244,48 @@
                     this.estado.procesandoAccion = true;
                     
                     // Deshabilitar botón
+                    const btnConfirmar = document.getElementById('btn-confirmar-entrega-completa');
+                    btnConfirmar.disabled = true;
+                    btnConfirmar.innerHTML = '<span class="loading-spinner"></span>Procesando...';
+
+                    this.mostrarMensaje('📸 Guardando documentación de entrega...', 'loading');
+
+                    // Obtener información adicional
+                    this.estado.infoAdicional = document.getElementById('info-adicional').value.trim();
+
+                    const payload = {
+                        accion: 'entrega_exitosa_completa',
+                        idPedido: this.estado.datosPendientes.idPedido,
+                        usuario: this.estado.datosPendientes.usuario,
+                        ubicacion: this.estado.datosPendientes.ubicacion,
+                        // Documentación de la entrega
+                        fotoFactura: this.estado.fotoFactura,
+                        firmaCliente: this.estado.firmaCliente,
+                        infoAdicional: this.estado.infoAdicional,
+                        fechaEntrega: new Date().toISOString()
+                    };
+
+                    const resultado = await this.enviarDatos(payload);
+                    this.mostrarMensaje('✅ Entrega registrada correctamente con toda la documentación', 'success');
+                    
+                    setTimeout(() => this.volverAlInicio(), 4000);
+
+                } catch (error) {
+                    this.mostrarMensaje(`Error al registrar entrega: ${error.message}`, 'error');
+                    setTimeout(() => this.volverAlInicio(), 3000);
+                } finally {
+                    this.estado.procesandoAccion = false;
+                }
+            }
+
+            async registrarFactura() {
+                if (this.estado.procesandoAccion) {
+                    return;
+                }
+
+                try {
+                    this.estado.procesandoAccion = true;
+                    
                     const btnConfirmar = document.querySelector('#acciones-botones .btn-confirm');
                     if (btnConfirmar) {
                         btnConfirmar.disabled = true;
@@ -956,16 +1313,13 @@
             }
 
             async actualizarStatus(nuevoStatus, detalles = "") {
-                // PREVENIR ACTUALIZACIONES DOBLES
                 if (this.estado.procesandoAccion) {
-                    console.log('Ya se está procesando una acción, ignorando...');
                     return;
                 }
 
                 try {
                     this.estado.procesandoAccion = true;
 
-                    // Deshabilitar todos los botones de acción
                     document.querySelectorAll('#acciones-botones button').forEach(btn => {
                         btn.disabled = true;
                     });
@@ -1010,7 +1364,7 @@
                     const timeoutId = setTimeout(() => {
                         this.limpiarCallback(callbackName);
                         reject(new Error('Timeout: No se recibió respuesta del servidor'));
-                    }, 30000);
+                    }, 45000); // Aumentado por las imágenes
 
                     window[callbackName] = (response) => {
                         clearTimeout(timeoutId);
@@ -1056,18 +1410,28 @@
                 const statusDiv = document.getElementById('status-message');
                 statusDiv.textContent = mensaje;
                 statusDiv.className = `status-message${tipo ? ' status-' + tipo : ''}`;
+                statusDiv.classList.remove('hidden');
+                
+                if (tipo === 'success') {
+                    setTimeout(() => this.limpiarMensaje(), 4000);
+                } else if (tipo === 'error') {
+                    setTimeout(() => this.limpiarMensaje(), 6000);
+                }
             }
 
             limpiarMensaje() {
                 const statusDiv = document.getElementById('status-message');
                 statusDiv.textContent = '';
-                statusDiv.className = 'status-message';
+                statusDiv.className = 'status-message hidden';
             }
 
             volverAlInicio() {
-                // Detener scanner si está activo
+                // Detener scanner y cámara
                 if (this.estado.scanner) {
                     this.detenerScanner();
+                }
+                if (this.estado.cameraStream) {
+                    this.detenerCamara();
                 }
 
                 // Limpiar formularios
@@ -1075,19 +1439,24 @@
                 document.getElementById('nombre-usuario-almacen').value = '';
                 document.getElementById('nombre-repartidor').value = '';
                 document.getElementById('motivo-fallo').value = '';
+                document.getElementById('info-adicional').value = '';
+
+                // Limpiar datos de entrega
+                this.estado.fotoFactura = null;
+                this.estado.firmaCliente = null;
+                this.estado.infoAdicional = '';
 
                 // Resetear estado
                 this.estado.modulo = null;
                 this.estado.datosPendientes = {};
-                this.estado.procesandoAccion = false; // Resetear flag
+                this.estado.procesandoAccion = false;
 
-                // Ir a vista principal
                 this.cambiarVista('principal');
                 this.limpiarMensaje();
             }
         }
 
-        // Inicializar aplicación cuando el DOM esté listo
+        // Inicializar aplicación
         document.addEventListener('DOMContentLoaded', () => {
             window.sistemaTrazabilidad = new SistemaTrazabilidad();
         });
