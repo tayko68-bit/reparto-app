@@ -1,132 +1,293 @@
-// =================================================================
-// CONFIGURACIÓN INICIAL
-// =================================================================
-const ss = SpreadsheetApp.getActiveSpreadsheet();
-const controlSheet = ss.getSheetByName("Control de Pedidos");
-const padronSheet = ss.getSheetByName("Padrón de Clientes");
-const bitacoraSheet = ss.getSheetByName("Bitácora de Escaneos");
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Trazabilidad</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 10px; background-color: #f4f4f9; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1, h2 { color: #444; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-top: 0;}
+        button { display: block; width: 100%; padding: 15px; font-size: 18px; font-weight: bold; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; transition: background-color 0.3s; }
+        .btn-main { background-color: #007bff; }
+        .btn-secondary { background-color: #6c757d; }
+        .btn-confirm { background-color: #28a745; }
+        .btn-cancel { background-color: #dc3545; }
+        input, select { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
+        #lector-container { position: relative; width: 100%; padding-top: 75%; border: 2px solid #ccc; border-radius: 8px; overflow: hidden; margin-top: 20px; }
+        #lector-qr { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+        .hidden { display: none; }
+        .status-message { text-align: center; margin-top: 20px; font-weight: bold; padding: 10px; border-radius: 5px; }
+        .status-success { background-color: #d4edda; color: #155724; }
+        .status-error { background-color: #f8d7da; color: #721c24; }
+        .info-card { border: 2px solid #007bff; padding: 15px; border-radius: 8px; margin-top: 20px; }
+        .info-card p { margin: 5px 0; font-size: 16px; }
+        .status-tag { padding: 5px 10px; border-radius: 15px; color: white; font-weight: bold; }
+        .status-Facturado { background-color: #ffc107; }
+        .status-En.Ruta { background-color: #17a2b8; }
+        .status-En.Proceso.de.Entrega { background-color: #fd7e14; }
+        .status-Entregado { background-color: #28a745; }
+    </style>
+</head>
+<body>
 
-// =================================================================
-// FUNCIÓN PRINCIPAL - doGet
-// =================================================================
-function doGet(e) {
-  try {
-    const data = JSON.parse(e.parameter.data);
-    let resultado;
+    <div class="container">
+        <div id="vista-principal" class="vista">
+            <h1>Sistema de Trazabilidad</h1>
+            <button type="button" id="btn-rol-almacen" class="btn-main">📦 Módulo de Almacén</button>
+            <button type="button" id="btn-rol-repartidor" class="btn-secondary">🚚 Módulo de Reparto</button>
+        </div>
 
-    switch (data.accion) {
-      case 'consultar_factura':
-        resultado = consultarFactura(data);
-        break;
-      case 'registrar_factura':
-        resultado = registrarNuevaFactura(data);
-        break;
-      case 'actualizar_status':
-        resultado = actualizarStatusPedido(data);
-        break;
-      default:
-        throw new Error("Acción no reconocida.");
-    }
-    return ContentService
-      .createTextOutput(JSON.stringify({ status: "success", data: resultado }))
-      .setMimeType(ContentService.MimeType.JSON);
-  } catch (error) {
-    return ContentService
-      .createTextOutput(JSON.stringify({ status: "error", message: error.message }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}
+        <div id="vista-almacen-form" class="vista hidden">
+            <h2>Módulo de Almacén</h2>
+            <label for="numero-pedido">Número de Pedido Original:</label>
+            <input type="text" id="numero-pedido" placeholder="Ej: P-801">
+            <label for="nombre-surtidor-almacen">Tu Nombre:</label>
+            <input type="text" id="nombre-surtidor-almacen" placeholder="Escribe tu nombre">
+            <button type="button" id="btn-escanear-factura" class="btn-main">📸 Escanear para Registrar</button>
+            <button type="button" class="btn-secondary btn-volver">Volver al Inicio</button>
+        </div>
 
-// =================================================================
-// LÓGICA DE NEGOCIO
-// =================================================================
+        <div id="vista-almacen-confirmacion" class="vista hidden">
+            <h2>Verifica los Datos</h2>
+            <div class="info-card">
+                <p><strong>Cliente:</strong> <span id="conf-cliente"></span></p>
+                <p><strong>RFC:</strong> <span id="conf-rfc"></span></p>
+                <p><strong>Dirección:</strong> <span id="conf-direccion"></span></p>
+                <p><strong>Nº Pedido:</strong> <span id="conf-pedido"></span></p>
+                <p><strong>Folio Fiscal:</strong> <span id="conf-folio"></span></p>
+            </div>
+            <button type="button" id="btn-confirmar-registro" class="btn-confirm">✅ Confirmar y Registrar</button>
+            <button type="button" class="btn-cancel btn-volver">❌ Cancelar</button>
+        </div>
 
-// NUEVA FUNCIÓN: Consulta el estado y los datos de una factura
-function consultarFactura(data) {
-  const { idPedido } = data;
-  const fila = findRowById(idPedido);
-  
-  // Si no encuentra la factura en "Control de Pedidos", busca al cliente en el Padrón
-  if (fila === -1) {
-    const { rfc } = data;
-    if (!rfc) throw new Error("Factura no registrada y no se proporcionó RFC.");
-    const clienteInfo = findClientByRfc(rfc);
-    // Devuelve la información del cliente con un status "NO_REGISTRADO"
-    return { status: "NO_REGISTRADO", cliente: clienteInfo };
-  }
+        <div id="vista-repartidor-form" class="vista hidden">
+            <h2>Módulo de Reparto</h2>
+            <label for="nombre-repartidor">Tu Nombre (Repartidor):</label>
+            <input type="text" id="nombre-repartidor" placeholder="Escribe tu nombre">
+            <button type="button" id="btn-escanear-repartidor" class="btn-main">📸 Escanear Siguiente Acción</button>
+            <button type="button" class="btn-secondary btn-volver">Volver al Inicio</button>
+        </div>
+        
+        <div id="vista-repartidor-accion" class="vista hidden">
+            <h2>Acción del Pedido</h2>
+            <div class="info-card" id="info-card-repartidor">
+                <p><strong>Cliente:</strong> <span id="reparto-cliente"></span></p>
+                <p><strong>Status Actual:</strong> <span id="reparto-status" class="status-tag"></span></p>
+            </div>
+            <div id="acciones-repartidor">
+                </div>
+            <button type="button" class="btn-cancel btn-volver">Cancelar</button>
+        </div>
+        
+        <div id="vista-repartidor-fallo" class="vista hidden">
+            <h2>Reportar Entrega Fallida</h2>
+            <select id="motivo-fallo">
+                <option value="">-- Selecciona un motivo --</option>
+                <option value="Cliente no estaba">Cliente no estaba</option>
+                <option value="Pedido rechazado">Pedido rechazado</option>
+                <option value="Dirección incorrecta">Dirección incorrecta</option>
+                <option value="Otro">Otro</option>
+            </select>
+            <button type="button" id="btn-confirmar-fallo" class="btn-confirm">Confirmar Fallo</button>
+            <button type="button" class="btn-cancel btn-volver">Cancelar</button>
+        </div>
 
-  // Si la encuentra, devuelve todos los datos de esa fila
-  const headers = controlSheet.getRange(1, 1, 1, controlSheet.getLastColumn()).getValues()[0];
-  const rowData = controlSheet.getRange(fila, 1, 1, controlSheet.getLastColumn()).getValues()[0];
-  let pedidoInfo = {};
-  headers.forEach((header, index) => {
-    pedidoInfo[header] = rowData[index];
-  });
-  return { status: "REGISTRADO", pedido: pedidoInfo };
-}
+        <div id="lector-container" class="hidden">
+            <video id="lector-qr"></video>
+        </div>
+        <div class="status-message"></div>
+    </div>
 
-function registrarNuevaFactura(data) {
-  const { idPedido, numeroPedidoOrigen, rfc, surtidor } = data;
-  if (findRowById(idPedido) !== -1) {
-    throw new Error(`Esta factura ya fue registrada.`);
-  }
-  const clienteInfo = findClientByRfc(rfc);
-  const nuevaFila = [
-    idPedido, numeroPedidoOrigen, "Facturado", // Status inicial
-    clienteInfo['Razón Social'], rfc, surtidor, new Date(), "", "", "", ""
-  ];
-  controlSheet.appendRow(nuevaFila);
-  bitacoraSheet.appendRow([new Date(), idPedido, "Facturado", surtidor]);
-  return `Factura registrada para: ${clienteInfo['Razón Social']}.`;
-}
+    <script type="module">
+        import QrScanner from "https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner.min.js";
 
-function actualizarStatusPedido(data) {
-  const { idPedido, nuevoStatus, usuario, detalles } = data;
-  const fila = findRowById(idPedido);
-  if (fila === -1) throw new Error(`Pedido ${idPedido} no encontrado.`);
+        // CONFIGURACIÓN
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyAqMuAU0vtAccSTTqpcnXpGQkr_xv3O2lNNHmwXH4xIVTwcncZXxk044eRp64TOgD0g/exec";
+        
+        // ESTADO GLOBAL
+        let estado = {
+            modulo: null, // 'almacen' o 'repartidor'
+            qrScanner: null,
+            datosPendientes: {}
+        };
 
-  controlSheet.getRange(fila, 3).setValue(nuevoStatus); // Columna C: Status
-  
-  let timestampCol;
-  switch (nuevoStatus) {
-    case "En Ruta": timestampCol = 8; break; // Col H
-    case "En Proceso de Entrega": timestampCol = 8; break; // Sobreescribimos la misma para saber la última acción en ruta
-    case "Entregado": timestampCol = 9; break; // Col I
-    case "Entrega Fallida": timestampCol = 9; break; // Col I
-  }
-  if (timestampCol) controlSheet.getRange(fila, timestampCol).setValue(new Date());
+        // ELEMENTOS DEL DOM
+        const vistas = document.querySelectorAll('.vista');
+        const lectorContainer = document.getElementById('lector-container');
+        const videoElement = document.getElementById('lector-qr');
+        const statusMessage = document.querySelector('.status-message');
+        
+        // NAVEGACIÓN
+        function cambiarVista(idVista) {
+            vistas.forEach(v => v.classList.add('hidden'));
+            document.getElementById(idVista).classList.remove('hidden');
+        }
+        document.getElementById('btn-rol-almacen').addEventListener('click', () => { estado.modulo = 'almacen'; cambiarVista('vista-almacen-form'); });
+        document.getElementById('btn-rol-repartidor').addEventListener('click', () => { estado.modulo = 'repartidor'; cambiarVista('vista-repartidor-form'); });
+        document.querySelectorAll('.btn-volver').forEach(btn => btn.addEventListener('click', () => location.reload()));
 
-  // Si hay detalles (motivo de fallo, link a firma, etc.) los podemos guardar
-  // Por ahora, solo registramos en bitácora
-  bitacoraSheet.appendRow([new Date(), idPedido, nuevoStatus, usuario, detalles || ""]);
-  return `Pedido ${idPedido} actualizado a: ${nuevoStatus}.`;
-}
+        // LÓGICA DEL ESCÁNER
+        function iniciarScanner() {
+            cambiarVista('lector-container');
+            estado.qrScanner = new QrScanner(videoElement, result => onScanSuccess(result.data), { highlightScanRegion: true });
+            estado.qrScanner.start().catch(err => mostrarMensaje(`Error al iniciar cámara: ${err}`, 'error'));
+        }
+        function detenerScanner() {
+            if (estado.qrScanner) { estado.qrScanner.stop(); estado.qrScanner.destroy(); estado.qrScanner = null; }
+        }
 
-// =================================================================
-// FUNCIONES DE AYUDA (ACTUALIZADAS)
-// =================================================================
-function findRowById(id) {
-  const data = controlSheet.getRange("A:A").getValues();
-  for (let i = 0; i < data.length; i++) {
-    if (data[i][0] == id) return i + 1;
-  }
-  return -1;
-}
+        async function onScanSuccess(decodedText) {
+            detenerScanner();
+            mostrarMensaje("Procesando QR...", "");
+            try {
+                const url = new URL(decodedText);
+                const urlParams = new URLSearchParams(url.search);
+                const idPedido = urlParams.get('id');
+                const rfc = urlParams.get('rr');
+                if (!idPedido) throw new Error("QR no válido.");
 
-function findClientByRfc(rfc) {
-  if (!rfc || rfc === "SIN_RFC") return { 'Razón Social': 'CLIENTE SIN RFC', 'RFC': 'N/A' };
-  const headers = padronSheet.getRange(1, 1, 1, padronSheet.getLastColumn()).getValues()[0];
-  const rfcColumnIndex = headers.indexOf('RFC');
-  if (rfcColumnIndex === -1) throw new Error("Columna 'RFC' no encontrada en Padrón.");
-  
-  const allData = padronSheet.getDataRange().getValues();
-  // Empezamos en 1 para saltar la cabecera
-  for (let i = 1; i < allData.length; i++) {
-    if (allData[i][rfcColumnIndex].toString().trim().toUpperCase() === rfc.toString().trim().toUpperCase()) {
-      let clientInfo = {};
-      headers.forEach((header, index) => { clientInfo[header] = allData[i][index]; });
-      return clientInfo;
-    }
-  }
-  return { 'Razón Social': 'CLIENTE NO ENCONTRADO EN PADRÓN', 'RFC': rfc };
-}
+                estado.datosPendientes.idPedido = idPedido;
+                estado.datosPendientes.rfc = rfc || "SIN_RFC";
+
+                if (estado.modulo === 'almacen') {
+                    const numeroPedido = document.getElementById('numero-pedido').value;
+                    const surtidor = document.getElementById('nombre-surtidor-almacen').value;
+                    if (!numeroPedido.trim() || !surtidor.trim()) throw new Error("Rellena el Nº de Pedido y tu Nombre.");
+                    estado.datosPendientes.numeroPedido = numeroPedido;
+                    estado.datosPendientes.surtidor = surtidor;
+                    await enviarDatos({ accion: 'consultar_factura', idPedido, rfc: estado.datosPendientes.rfc });
+                } else if (estado.modulo === 'repartidor') {
+                    const repartidor = document.getElementById('nombre-repartidor').value;
+                    if (!repartidor.trim()) throw new Error("Escribe tu nombre de repartidor.");
+                    estado.datosPendientes.repartidor = repartidor;
+                    await enviarDatos({ accion: 'consultar_factura', idPedido, rfc: estado.datosPendientes.rfc });
+                }
+            } catch (error) {
+                mostrarMensaje(`Error: ${error.message}`, 'error');
+                setTimeout(() => location.reload(), 3000);
+            }
+        }
+        
+        // MANEJO DE RESPUESTAS DEL SCRIPT
+        function manejarRespuesta(result) {
+            if (estado.modulo === 'almacen') {
+                if (result.status === "NO_REGISTRADO") mostrarConfirmacionAlmacen(result.cliente);
+                else mostrarMensaje("Esta factura ya fue registrada.", "error");
+            } else if (estado.modulo === 'repartidor') {
+                if (result.status === "REGISTRADO") mostrarAccionesRepartidor(result.pedido);
+                else mostrarMensaje("Factura no encontrada. Debe ser registrada primero en almacén.", "error");
+            }
+        }
+
+        // LÓGICA DE PANTALLAS
+        function mostrarConfirmacionAlmacen(cliente) {
+            document.getElementById('conf-cliente').textContent = cliente['Razón Social'] || 'N/A';
+            document.getElementById('conf-rfc').textContent = cliente.RFC || 'N/A';
+            document.getElementById('conf-direccion').textContent = `${cliente.Calle || ''} ${cliente['Num ext.'] || ''}, ${cliente.Colonia || ''}`.trim();
+            document.getElementById('conf-pedido').textContent = estado.datosPendientes.numeroPedido;
+            document.getElementById('conf-folio').textContent = estado.datosPendientes.idPedido.substring(0, 8) + '...';
+            cambiarVista('vista-almacen-confirmacion');
+        }
+
+        function mostrarAccionesRepartidor(pedido) {
+            estado.datosPendientes.pedido = pedido;
+            document.getElementById('reparto-cliente').textContent = pedido['Razón Social'];
+            const statusSpan = document.getElementById('reparto-status');
+            statusSpan.textContent = pedido.Status;
+            statusSpan.className = 'status-tag status-' + pedido.Status.replace(/\s+/g, '.');
+
+            const accionesDiv = document.getElementById('acciones-repartidor');
+            accionesDiv.innerHTML = ''; // Limpiar botones anteriores
+
+            if (pedido.Status === 'Facturado') {
+                accionesDiv.innerHTML = `<button type="button" id="btn-iniciar-ruta" class="btn-main">Iniciar Ruta</button>`;
+                document.getElementById('btn-iniciar-ruta').addEventListener('click', () => actualizarStatus('En Ruta'));
+            } else if (pedido.Status === 'En Ruta') {
+                accionesDiv.innerHTML = `<button type="button" id="btn-prox-entrega" class="btn-main">Marcar Próxima Entrega</button>`;
+                document.getElementById('btn-prox-entrega').addEventListener('click', () => actualizarStatus('En Proceso de Entrega'));
+            } else if (pedido.Status === 'En Proceso de Entrega') {
+                accionesDiv.innerHTML = `
+                    <button type="button" id="btn-entrega-exitosa" class="btn-confirm">✅ Entrega Exitosa</button>
+                    <button type="button" id="btn-entrega-fallida" class="btn-cancel">❌ Entrega Fallida</button>`;
+                document.getElementById('btn-entrega-exitosa').addEventListener('click', () => actualizarStatus('Entregado'));
+                document.getElementById('btn-entrega-fallida').addEventListener('click', () => cambiarVista('vista-repartidor-fallo'));
+            } else {
+                 accionesDiv.innerHTML = `<p>Este pedido ya fue procesado.</p>`;
+            }
+
+            cambiarVista('vista-repartidor-accion');
+        }
+        
+        // EVENTOS DE BOTONES DE ACCIÓN
+        document.getElementById('btn-escanear-factura').addEventListener('click', iniciarScanner);
+        document.getElementById('btn-escanear-repartidor').addEventListener('click', iniciarScanner);
+        
+        document.getElementById('btn-confirmar-registro').addEventListener('click', () => {
+            const payload = {
+                accion: 'registrar_factura',
+                idPedido: estado.datosPendientes.idPedido,
+                rfc: estado.datosPendientes.rfc,
+                numeroPedidoOrigen: estado.datosPendientes.numeroPedido,
+                surtidor: estado.datosPendientes.surtidor
+            };
+            enviarDatos(payload);
+        });
+        
+        document.getElementById('btn-confirmar-fallo').addEventListener('click', () => {
+            const motivo = document.getElementById('motivo-fallo').value;
+            if (!motivo) { alert("Por favor, selecciona un motivo."); return; }
+            actualizarStatus('Facturado', motivo); // Regresa a Facturado con el motivo del fallo
+        });
+
+        async function actualizarStatus(nuevoStatus, detalles = "") {
+             const payload = {
+                accion: 'actualizar_status',
+                idPedido: estado.datosPendientes.idPedido,
+                nuevoStatus: nuevoStatus,
+                usuario: estado.datosPendientes.repartidor,
+                detalles: detalles
+            };
+            if (nuevoStatus === 'Entregado') payload.ubicacion = await obtenerUbicacion();
+            await enviarDatos(payload);
+        }
+
+        // COMUNICACIÓN CENTRALIZADA
+        async function enviarDatos(payload) {
+            mostrarMensaje("Enviando datos...", "");
+            const urlConDatos = new URL(SCRIPT_URL);
+            urlConDatos.searchParams.append('data', JSON.stringify(payload));
+            try {
+                const response = await fetch(urlConDatos, { method: 'GET' });
+                const result = await response.json();
+                if (result.status !== 'success') throw new Error(result.message);
+                
+                if (payload.accion === 'consultar_factura') manejarRespuesta(result.data);
+                else {
+                    mostrarMensaje(result.data, 'success');
+
+                    setTimeout(() => location.reload(), 3000);
+                }
+            } catch (error) {
+                mostrarMensaje(`Error de comunicación: ${error.message}`, 'error');
+                 setTimeout(() => location.reload(), 3000);
+            }
+        }
+
+        // FUNCIONES DE UTILIDAD
+        function obtenerUbicacion() {
+            return new Promise(resolve => {
+                if (!navigator.geolocation) return resolve("Geolocalización no soportada");
+                navigator.geolocation.getCurrentPosition(
+                    p => resolve(`https://maps.google.com/?q=${p.coords.latitude},${p.coords.longitude}`),
+                    () => resolve("No se pudo obtener la ubicación"), { timeout: 10000 }
+                );
+            });
+        }
+        function mostrarMensaje(mensaje, tipo = "") {
+            statusMessage.textContent = mensaje;
+            statusMessage.className = `status-message status-${tipo}`;
+        }
+    </script>
+</body>
+</html>
