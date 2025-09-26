@@ -5,39 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Trazabilidad</title>
     <style>
+        /* El CSS se mantiene igual que la versión anterior */
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 10px; background-color: #f4f4f9; color: #333; }
         .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         h1, h2 { color: #444; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-top: 0;}
         button { display: block; width: 100%; padding: 15px; font-size: 18px; font-weight: bold; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; transition: background-color 0.3s; }
-        .btn-main { background-color: #007bff; }
-        .btn-secondary { background-color: #6c757d; }
-        .btn-confirm { background-color: #28a745; }
-        .btn-cancel { background-color: #dc3545; }
+        .btn-main { background-color: #007bff; } .btn-secondary { background-color: #6c757d; } .btn-confirm { background-color: #28a745; } .btn-cancel { background-color: #dc3545; }
         input, select { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
         #lector-container { position: relative; width: 100%; padding-top: 75%; border: 2px solid #ccc; border-radius: 8px; overflow: hidden; margin-top: 20px; }
         #lector-qr { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
         .hidden { display: none; }
         .status-message { text-align: center; margin-top: 20px; font-weight: bold; padding: 10px; border-radius: 5px; }
-        .status-success { background-color: #d4edda; color: #155724; }
-        .status-error { background-color: #f8d7da; color: #721c24; }
+        .status-success { background-color: #d4edda; color: #155724; } .status-error { background-color: #f8d7da; color: #721c24; }
         .info-card { border: 2px solid #007bff; padding: 15px; border-radius: 8px; margin-top: 20px; }
         .info-card p { margin: 5px 0; font-size: 16px; }
         .status-tag { padding: 5px 10px; border-radius: 15px; color: white; font-weight: bold; }
-        .status-Facturado { background-color: #ffc107; }
-        .status-En.Ruta { background-color: #17a2b8; }
-        .status-En.Proceso.de.Entrega { background-color: #fd7e14; }
-        .status-Entregado { background-color: #28a745; }
+        .status-Facturado { background-color: #ffc107; } .status-En\.Ruta { background-color: #17a2b8; } .status-En\.Proceso\.de\.Entrega { background-color: #fd7e14; } .status-Entregado { background-color: #28a745; }
+        .status-En\.Almacén\.\(Devolución\) { background-color: #dc3545; }
     </style>
 </head>
 <body>
-
     <div class="container">
         <div id="vista-principal" class="vista">
             <h1>Sistema de Trazabilidad</h1>
             <button type="button" id="btn-rol-almacen" class="btn-main">📦 Módulo de Almacén</button>
             <button type="button" id="btn-rol-repartidor" class="btn-secondary">🚚 Módulo de Reparto</button>
         </div>
-
         <div id="vista-almacen-form" class="vista hidden">
             <h2>Módulo de Almacén</h2>
             <label for="numero-pedido">Número de Pedido Original:</label>
@@ -47,20 +40,16 @@
             <button type="button" id="btn-escanear-factura" class="btn-main">📸 Escanear para Registrar</button>
             <button type="button" class="btn-secondary btn-volver">Volver al Inicio</button>
         </div>
-
         <div id="vista-almacen-confirmacion" class="vista hidden">
             <h2>Verifica los Datos</h2>
             <div class="info-card">
                 <p><strong>Cliente:</strong> <span id="conf-cliente"></span></p>
-                <p><strong>RFC:</strong> <span id="conf-rfc"></span></p>
                 <p><strong>Dirección:</strong> <span id="conf-direccion"></span></p>
                 <p><strong>Nº Pedido:</strong> <span id="conf-pedido"></span></p>
-                <p><strong>Folio Fiscal:</strong> <span id="conf-folio"></span></p>
             </div>
             <button type="button" id="btn-confirmar-registro" class="btn-confirm">✅ Confirmar y Registrar</button>
             <button type="button" class="btn-cancel btn-volver">❌ Cancelar</button>
         </div>
-
         <div id="vista-repartidor-form" class="vista hidden">
             <h2>Módulo de Reparto</h2>
             <label for="nombre-repartidor">Tu Nombre (Repartidor):</label>
@@ -68,18 +57,15 @@
             <button type="button" id="btn-escanear-repartidor" class="btn-main">📸 Escanear Siguiente Acción</button>
             <button type="button" class="btn-secondary btn-volver">Volver al Inicio</button>
         </div>
-        
         <div id="vista-repartidor-accion" class="vista hidden">
             <h2>Acción del Pedido</h2>
             <div class="info-card" id="info-card-repartidor">
-                <p><strong>Cliente:</strong> <span id="reparto-cliente"></span></p>
+                 <p><strong>Cliente:</strong> <span id="reparto-cliente"></span></p>
                 <p><strong>Status Actual:</strong> <span id="reparto-status" class="status-tag"></span></p>
             </div>
-            <div id="acciones-repartidor">
-                </div>
+            <div id="acciones-repartidor"></div>
             <button type="button" class="btn-cancel btn-volver">Cancelar</button>
         </div>
-        
         <div id="vista-repartidor-fallo" class="vista hidden">
             <h2>Reportar Entrega Fallida</h2>
             <select id="motivo-fallo">
@@ -92,25 +78,16 @@
             <button type="button" id="btn-confirmar-fallo" class="btn-confirm">Confirmar Fallo</button>
             <button type="button" class="btn-cancel btn-volver">Cancelar</button>
         </div>
-
-        <div id="lector-container" class="hidden">
-            <video id="lector-qr"></video>
-        </div>
+        <div id="lector-container" class="hidden"><video id="lector-qr"></video></div>
         <div class="status-message"></div>
     </div>
 
     <script type="module">
-        import QrScanner from "https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner.min.js";
+        import QrScanner from "https://cdn.jsdelivrnet/npm/qr-scanner@1.4.2/qr-scanner.min.js";
 
-        // CONFIGURACIÓN
+        // CONFIGURACIÓN Y ESTADO
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyAqMuAU0vtAccSTTqpcnXpGQkr_xv3O2lNNHmwXH4xIVTwcncZXxk044eRp64TOgD0g/exec";
-        
-        // ESTADO GLOBAL
-        let estado = {
-            modulo: null, // 'almacen' o 'repartidor'
-            qrScanner: null,
-            datosPendientes: {}
-        };
+        let estado = { modulo: null, qrScanner: null, datosPendientes: {} };
 
         // ELEMENTOS DEL DOM
         const vistas = document.querySelectorAll('.vista');
@@ -139,7 +116,8 @@
 
         async function onScanSuccess(decodedText) {
             detenerScanner();
-            mostrarMensaje("Procesando QR...", "");
+
+            mostrarMensaje("Consultando información...", "");
             try {
                 const url = new URL(decodedText);
                 const urlParams = new URLSearchParams(url.search);
@@ -150,19 +128,25 @@
                 estado.datosPendientes.idPedido = idPedido;
                 estado.datosPendientes.rfc = rfc || "SIN_RFC";
 
+                // LA LÓGICA DE CAPTURA DE DATOS AHORA ES MÁS COMPLETA
                 if (estado.modulo === 'almacen') {
                     const numeroPedido = document.getElementById('numero-pedido').value;
                     const surtidor = document.getElementById('nombre-surtidor-almacen').value;
                     if (!numeroPedido.trim() || !surtidor.trim()) throw new Error("Rellena el Nº de Pedido y tu Nombre.");
                     estado.datosPendientes.numeroPedido = numeroPedido;
                     estado.datosPendientes.surtidor = surtidor;
-                    await enviarDatos({ accion: 'consultar_factura', idPedido, rfc: estado.datosPendientes.rfc });
+                    // Siempre capturamos la ubicación
+                    estado.datosPendientes.ubicacion = await obtenerUbicacion();
                 } else if (estado.modulo === 'repartidor') {
                     const repartidor = document.getElementById('nombre-repartidor').value;
                     if (!repartidor.trim()) throw new Error("Escribe tu nombre de repartidor.");
                     estado.datosPendientes.repartidor = repartidor;
-                    await enviarDatos({ accion: 'consultar_factura', idPedido, rfc: estado.datosPendientes.rfc });
+                     // Siempre capturamos la ubicación
+                    estado.datosPendientes.ubicacion = await obtenerUbicacion();
                 }
+
+                await enviarDatos({ accion: 'consultar_factura', idPedido, rfc: estado.datosPendientes.rfc });
+
             } catch (error) {
                 mostrarMensaje(`Error: ${error.message}`, 'error');
                 setTimeout(() => location.reload(), 3000);
@@ -183,39 +167,36 @@
         // LÓGICA DE PANTALLAS
         function mostrarConfirmacionAlmacen(cliente) {
             document.getElementById('conf-cliente').textContent = cliente['Razón Social'] || 'N/A';
-            document.getElementById('conf-rfc').textContent = cliente.RFC || 'N/A';
-            document.getElementById('conf-direccion').textContent = `${cliente.Calle || ''} ${cliente['Num ext.'] || ''}, ${cliente.Colonia || ''}`.trim();
+            document.getElementById('conf-direccion').textContent = `${cliente.Calle || ''} ${cliente['Num ext.'] || ''}`.trim();
             document.getElementById('conf-pedido').textContent = estado.datosPendientes.numeroPedido;
-            document.getElementById('conf-folio').textContent = estado.datosPendientes.idPedido.substring(0, 8) + '...';
             cambiarVista('vista-almacen-confirmacion');
         }
 
         function mostrarAccionesRepartidor(pedido) {
             estado.datosPendientes.pedido = pedido;
-            document.getElementById('reparto-cliente').textContent = pedido['Razón Social'];
+            document.getElementById('reparto-cliente').textContent = pedido.Razón_Social;
             const statusSpan = document.getElementById('reparto-status');
-            statusSpan.textContent = pedido.Status;
-            statusSpan.className = 'status-tag status-' + pedido.Status.replace(/\s+/g, '.');
+            statusSpan.textContent = pedido.Status_Actual;
+            statusSpan.className = 'status-tag status-' + (pedido.Status_Actual || "").replace(/\s+/g, '.');
 
             const accionesDiv = document.getElementById('acciones-repartidor');
-            accionesDiv.innerHTML = ''; // Limpiar botones anteriores
+            accionesDiv.innerHTML = ''; // Limpiar
 
-            if (pedido.Status === 'Facturado') {
+            const status = pedido.Status_Actual;
+            if (status === 'Facturado' || status === 'En Almacén (Devolución)') {
                 accionesDiv.innerHTML = `<button type="button" id="btn-iniciar-ruta" class="btn-main">Iniciar Ruta</button>`;
                 document.getElementById('btn-iniciar-ruta').addEventListener('click', () => actualizarStatus('En Ruta'));
-            } else if (pedido.Status === 'En Ruta') {
+            } else if (status === 'En Ruta') {
                 accionesDiv.innerHTML = `<button type="button" id="btn-prox-entrega" class="btn-main">Marcar Próxima Entrega</button>`;
                 document.getElementById('btn-prox-entrega').addEventListener('click', () => actualizarStatus('En Proceso de Entrega'));
-            } else if (pedido.Status === 'En Proceso de Entrega') {
-                accionesDiv.innerHTML = `
-                    <button type="button" id="btn-entrega-exitosa" class="btn-confirm">✅ Entrega Exitosa</button>
-                    <button type="button" id="btn-entrega-fallida" class="btn-cancel">❌ Entrega Fallida</button>`;
+            } else if (status === 'En Proceso de Entrega') {
+                accionesDiv.innerHTML = `<button type="button" id="btn-entrega-exitosa" class="btn-confirm">✅ Entrega Exitosa</button>
+                                         <button type="button" id="btn-entrega-fallida" class="btn-cancel">❌ Entrega Fallida</button>`;
                 document.getElementById('btn-entrega-exitosa').addEventListener('click', () => actualizarStatus('Entregado'));
                 document.getElementById('btn-entrega-fallida').addEventListener('click', () => cambiarVista('vista-repartidor-fallo'));
             } else {
-                 accionesDiv.innerHTML = `<p>Este pedido ya fue procesado.</p>`;
+                 accionesDiv.innerHTML = `<p>Este pedido ya fue procesado (${status}).</p>`;
             }
-
             cambiarVista('vista-repartidor-accion');
         }
         
@@ -224,32 +205,31 @@
         document.getElementById('btn-escanear-repartidor').addEventListener('click', iniciarScanner);
         
         document.getElementById('btn-confirmar-registro').addEventListener('click', () => {
-            const payload = {
+            enviarDatos({
                 accion: 'registrar_factura',
                 idPedido: estado.datosPendientes.idPedido,
                 rfc: estado.datosPendientes.rfc,
                 numeroPedidoOrigen: estado.datosPendientes.numeroPedido,
-                surtidor: estado.datosPendientes.surtidor
-            };
-            enviarDatos(payload);
+                surtidor: estado.datosPendientes.surtidor,
+                ubicacion: estado.datosPendientes.ubicacion
+            });
         });
         
         document.getElementById('btn-confirmar-fallo').addEventListener('click', () => {
             const motivo = document.getElementById('motivo-fallo').value;
             if (!motivo) { alert("Por favor, selecciona un motivo."); return; }
-            actualizarStatus('Facturado', motivo); // Regresa a Facturado con el motivo del fallo
+            actualizarStatus('Entrega Fallida', motivo);
         });
 
         async function actualizarStatus(nuevoStatus, detalles = "") {
-             const payload = {
+            await enviarDatos({
                 accion: 'actualizar_status',
                 idPedido: estado.datosPendientes.idPedido,
                 nuevoStatus: nuevoStatus,
                 usuario: estado.datosPendientes.repartidor,
+                ubicacion: estado.datosPendientes.ubicacion,
                 detalles: detalles
-            };
-            if (nuevoStatus === 'Entregado') payload.ubicacion = await obtenerUbicacion();
-            await enviarDatos(payload);
+            });
         }
 
         // COMUNICACIÓN CENTRALIZADA
@@ -261,16 +241,14 @@
                 const response = await fetch(urlConDatos, { method: 'GET' });
                 const result = await response.json();
                 if (result.status !== 'success') throw new Error(result.message);
-                
                 if (payload.accion === 'consultar_factura') manejarRespuesta(result.data);
                 else {
                     mostrarMensaje(result.data, 'success');
-
                     setTimeout(() => location.reload(), 3000);
                 }
             } catch (error) {
                 mostrarMensaje(`Error de comunicación: ${error.message}`, 'error');
-                 setTimeout(() => location.reload(), 3000);
+                setTimeout(() => location.reload(), 3000);
             }
         }
 
@@ -279,7 +257,7 @@
             return new Promise(resolve => {
                 if (!navigator.geolocation) return resolve("Geolocalización no soportada");
                 navigator.geolocation.getCurrentPosition(
-                    p => resolve(`https://maps.google.com/?q=${p.coords.latitude},${p.coords.longitude}`),
+                    p => resolve(`http://googleusercontent.com/maps.google.com/?q=${p.coords.latitude},${p.coords.longitude}`),
                     () => resolve("No se pudo obtener la ubicación"), { timeout: 10000 }
                 );
             });
