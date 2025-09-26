@@ -10,9 +10,7 @@
         h1, h2 { color: #444; text-align: center; }
         button { display: block; width: 100%; padding: 15px; font-size: 18px; font-weight: bold; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; transition: background-color 0.3s; }
         .btn-main { background-color: #007bff; }
-        .btn-main:hover { background-color: #0056b3; }
         .btn-secondary { background-color: #6c757d; }
-        .btn-secondary:hover { background-color: #5a6268; }
         input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
         #lector-qr { width: 100%; border: 2px solid #ccc; border-radius: 8px; overflow: hidden; margin-top: 20px; }
         .hidden { display: none; }
@@ -53,7 +51,6 @@
         
         <div id="lector-qr" class="hidden"></div>
         <div id="status-message"></div>
-
     </div>
 
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -70,7 +67,6 @@
         const lectorQrDiv = document.getElementById('lector-qr');
         const statusMessage = document.getElementById('status-message');
 
-        // Navegación
         document.getElementById('btn-rol-almacen').addEventListener('click', () => { vistaPrincipal.classList.add('hidden'); vistaAlmacen.classList.remove('hidden'); });
         document.getElementById('btn-rol-repartidor').addEventListener('click', () => { vistaPrincipal.classList.add('hidden'); vistaRepartidor.classList.remove('hidden'); });
         document.getElementById('btn-volver-almacen').addEventListener('click', () => location.reload());
@@ -82,28 +78,10 @@
             vistaAlmacen.classList.add('hidden');
             vistaRepartidor.classList.add('hidden');
             lectorQrDiv.classList.remove('hidden');
-            
             qrScannerInstance = new Html5Qrcode("lector-qr");
-
-            const config = {
-                fps: 10,
-                qrbox: { width: 250, height: 250 },
-            };
-            
-            // ===== CAMBIO CLAVE AQUÍ =====
-            // Esta es una instrucción más estricta para forzar la cámara TRASERA.
-            const cameraConstraints = { 
-                facingMode: { exact: "environment" } 
-            };
-            
-            qrScannerInstance.start(
-                cameraConstraints, // Usamos la nueva restricción estricta
-                config,
-                onScanSuccess,
-                () => {}
-            ).catch(err => {
-                mostrarMensaje(`Error al iniciar cámara: ${err}`, 'error');
-            });
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            qrScannerInstance.start({ facingMode: { exact: "environment" } }, config, onScanSuccess, () => {}
+            ).catch(err => mostrarMensaje(`Error al iniciar cámara: ${err}`, 'error'));
         }
         
         function detenerScanner() {
@@ -123,7 +101,6 @@
                 const idPedido = urlParams.get('id');
                 const rfc = urlParams.get('rr');
                 if (!idPedido) throw new Error("El QR no parece ser una factura válida.");
-
                 let payload;
                 if (modoActual === 'registrar') {
                     const numeroPedido = document.getElementById('numero-pedido').value;
@@ -136,9 +113,7 @@
                     payload = { accion: 'actualizar_status', idPedido, nuevoStatus: modoActual, usuario };
                     if (modoActual === 'Entregado') payload.ubicacion = await obtenerUbicacion();
                 }
-                
                 await enviarDatosAlScript(payload);
-
             } catch (error) {
                 mostrarMensaje(`Error: ${error.message}`, 'error');
                 setTimeout(() => location.reload(), 4000);
@@ -146,16 +121,22 @@
         }
         
         async function enviarDatosAlScript(payload) {
+            mostrarMensaje("Enviando datos...", "");
+            // CAMBIO: Construimos la URL con los datos y usamos GET
+            const urlConDatos = new URL(SCRIPT_URL);
+            urlConDatos.searchParams.append('data', JSON.stringify(payload));
+
             try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' }, redirect: 'follow'
-                });
+                const response = await fetch(urlConDatos, { method: 'GET' });
                 const result = await response.json();
-                if (result.status === 'success') mostrarMensaje(result.data, 'success');
-                else throw new Error(result.message);
+                if (result.status === 'success') {
+                    mostrarMensaje(result.data, 'success');
+                } else {
+                    throw new Error(result.message);
+                }
             } catch (error) {
-                mostrarMensaje("Acción enviada. Revisa el Sheet para confirmar.", 'success');
-                console.error("Error en Fetch, posible CORS:", error);
+                mostrarMensaje(`Error de comunicación: ${error.message}`, 'error');
+                console.error("Error en Fetch:", error);
             } finally {
                 setTimeout(() => location.reload(), 4000);
             }
@@ -165,7 +146,7 @@
             return new Promise(resolve => {
                 if (!navigator.geolocation) return resolve("Geolocalización no soportada");
                 navigator.geolocation.getCurrentPosition(
-                    p => resolve(`http://googleusercontent.com/maps.google.com/6{p.coords.latitude},${p.coords.longitude}`),
+                    p => resolve(`http://googleusercontent.com/maps.google.com/7{p.coords.latitude},${p.coords.longitude}`),
                     () => resolve("No se pudo obtener la ubicación"),
                     { timeout: 10000 }
                 );
@@ -177,7 +158,6 @@
             statusMessage.className = `status-${tipo}`;
         }
         
-        // Eventos
         document.getElementById('btn-escanear-factura').addEventListener('click', () => iniciarScanner('registrar'));
         document.getElementById('btn-escanear-transito').addEventListener('click', () => iniciarScanner('En Tránsito'));
         document.getElementById('btn-escanear-entregado').addEventListener('click', () => iniciarScanner('Entregado'));
