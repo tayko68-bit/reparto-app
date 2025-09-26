@@ -73,7 +73,7 @@
             text-align: center;
         }
 
-        button:hover {
+        button:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
@@ -160,6 +160,7 @@
             font-size: 16px;
             padding-bottom: 8px;
             border-bottom: 1px solid #eee;
+            word-wrap: break-word;
         }
 
         .info-card p:last-child {
@@ -170,6 +171,13 @@
             color: var(--text-color);
             display: inline-block;
             min-width: 140px;
+            vertical-align: top;
+        }
+
+        .direccion-completa {
+            display: inline-block;
+            max-width: calc(100% - 150px);
+            vertical-align: top;
         }
 
         .status-tag {
@@ -181,6 +189,8 @@
             font-size: 14px;
         }
 
+        /* Todos los posibles estados con sus colores */
+        .status-Sin\.Facturar { background-color: #6c757d; }
         .status-Facturado { background-color: var(--warning-color); color: #333; }
         .status-En\.Ruta { background-color: var(--info-color); }
         .status-En\.Proceso\.de\.Entrega { background-color: var(--orange-color); }
@@ -252,6 +262,22 @@
             font-style: italic;
         }
 
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         @media (max-width: 480px) {
             .container {
                 padding: 5px;
@@ -269,6 +295,14 @@
             #lector-qr {
                 width: 95%;
                 height: 250px;
+            }
+
+            .info-card p strong {
+                min-width: 120px;
+            }
+
+            .direccion-completa {
+                max-width: calc(100% - 130px);
             }
         }
     </style>
@@ -329,7 +363,7 @@
                 <h3 id="accion-cliente"></h3>
                 <p><strong>Nº Pedido:</strong> <span id="accion-pedido-origen"></span></p>
                 <p><strong>Folio Fiscal:</strong> <span id="accion-folio"></span></p>
-                <p><strong>Dirección:</strong> <span id="accion-direccion"></span></p>
+                <p><strong>Dirección:</strong> <span id="accion-direccion" class="direccion-completa"></span></p>
                 <p><strong>Status Actual:</strong> <span id="accion-status" class="status-tag"></span></p>
             </div>
             <div id="acciones-botones"></div>
@@ -387,7 +421,8 @@
                 this.estado = {
                     modulo: null,
                     scanner: null,
-                    datosPendientes: {}
+                    datosPendientes: {},
+                    procesandoAccion: false // Flag para prevenir registro doble
                 };
                 this.inicializar();
             }
@@ -540,6 +575,13 @@
 
             async onScanSuccess(decodedText) {
                 try {
+                    // Prevenir múltiples escaneos del mismo código
+                    if (this.estado.procesandoAccion) {
+                        console.log('Ya se está procesando un QR, ignorando...');
+                        return;
+                    }
+
+                    this.estado.procesandoAccion = true;
                     this.detenerScanner();
                     this.mostrarMensaje('Código escaneado, procesando...', 'loading');
 
@@ -570,6 +612,8 @@
                     console.error('Error al procesar QR:', error);
                     this.mostrarMensaje(`Error: ${error.message}`, 'error');
                     setTimeout(() => this.volverAlInicio(), 3000);
+                } finally {
+                    this.estado.procesandoAccion = false;
                 }
             }
 
@@ -654,31 +698,63 @@
             }
 
             mostrarFichaDeAccion(datos, clienteInfo = null) {
-                const pedido = datos.pedido || {};
-                const cliente = clienteInfo || pedido;
+                console.log('Datos recibidos:', datos); // Debug
+                console.log('Cliente info:', clienteInfo); // Debug
+
+                const pedido = datos.pedido || datos || {};
+                let cliente = clienteInfo || pedido;
+
+                // Para repartidor, si no hay clienteInfo, intentar obtener del pedido
+                if (this.estado.modulo === 'repartidor' && !clienteInfo) {
+                    // Buscar información del cliente en diferentes ubicaciones posibles
+                    cliente = pedido.cliente || pedido.Cliente || pedido;
+                }
+
+                console.log('Pedido final:', pedido); // Debug
+                console.log('Cliente final:', cliente); // Debug
 
                 // Actualizar información básica
                 document.getElementById('accion-titulo').textContent = 
                     this.estado.modulo === 'almacen' ? 'Confirmar Registro' : 'Siguiente Acción';
 
                 document.getElementById('accion-cliente').textContent = 
-                    this.obtenerValorSeguro(cliente, ['Razón Social', 'nombre'], 'Cliente N/A');
+                    this.obtenerValorSeguro(cliente, ['Razón Social', 'razon_social', 'nombre', 'Cliente'], 'Cliente N/A');
 
                 document.getElementById('accion-pedido-origen').textContent = 
                     this.estado.datosPendientes.numeroPedidoOrigen || 
-                    this.obtenerValorSeguro(pedido, ['Numero_Pedido_Origen'], 'N/A');
+                    this.obtenerValorSeguro(pedido, ['Numero_Pedido_Origen', 'numero_pedido_origen', 'numero_pedido'], 'N/A');
 
                 document.getElementById('accion-folio').textContent = 
                     this.estado.datosPendientes.idPedido || 'N/A';
 
-                const direccion = this.construirDireccion(cliente);
+                const direccion = this.construirDireccionCompleta(cliente);
                 document.getElementById('accion-direccion').textContent = direccion;
 
-                // Status actual
-                const statusActual = this.obtenerValorSeguro(pedido, ['Status_Actual'], 'Nuevo');
+                // Status actual - CORREGIDO PARA REPARTIDOR
+                let statusActual;
+                if (this.estado.modulo === 'almacen' && datos.status === 'NO_REGISTRADO') {
+                    statusActual = 'Sin Facturar';
+                } else {
+                    // Para repartidor, obtener el status del pedido
+                    statusActual = this.obtenerValorSeguro(pedido, [
+                        'Status_Actual', 
+                        'status_actual', 
+                        'status', 
+                        'estado'
+                    ], 'Estado Desconocido');
+                }
+
+                console.log('Status actual determinado:', statusActual); // Debug
+
                 const statusSpan = document.getElementById('accion-status');
                 statusSpan.textContent = statusActual;
-                statusSpan.className = 'status-tag status-' + statusActual.replace(/\s+/g, '\\.');
+                
+                // Limpiar clases CSS previas y agregar la nueva
+                statusSpan.className = 'status-tag';
+                const statusClass = 'status-' + statusActual.replace(/\s+/g, '\\.');
+                statusSpan.classList.add(statusClass);
+
+                console.log('Clase CSS aplicada:', statusClass); // Debug
 
                 // Generar botones de acción
                 this.generarBotonesAccion(statusActual, datos.status);
@@ -703,23 +779,68 @@
                 return valorPorDefecto;
             }
 
-            construirDireccion(cliente) {
+            // DIRECCIÓN COMPLETA MEJORADA - busca en más ubicaciones
+            construirDireccionCompleta(cliente) {
                 if (!cliente || typeof cliente !== 'object') {
                     return 'Dirección no disponible';
                 }
 
-                // Obtener valores de forma segura y convertir a string
-                const calle = this.obtenerValorSeguro(cliente, ['Calle', 'calle']);
-                const numero = this.obtenerValorSeguro(cliente, ['Num ext.', 'numero']);
-                const colonia = this.obtenerValorSeguro(cliente, ['Colonia', 'colonia']);
-                const ciudad = this.obtenerValorSeguro(cliente, ['Ciudad', 'ciudad']);
+                console.log('Construyendo dirección para:', cliente); // Debug
 
-                // Filtrar solo las partes que tienen contenido
-                const partes = [calle, numero, colonia, ciudad].filter(parte => {
-                    return parte && typeof parte === 'string' && parte.trim().length > 0;
-                });
+                // Buscar en múltiples ubicaciones posibles para cada campo
+                const calle = this.obtenerValorSeguro(cliente, [
+                    'Calle', 'calle', 'direccion', 'Direccion', 'street'
+                ]);
+                
+                const numeroExt = this.obtenerValorSeguro(cliente, [
+                    'Num ext.', 'Num ext', 'numero_ext', 'numero', 'num_ext', 'number'
+                ]);
+                
+                const colonia = this.obtenerValorSeguro(cliente, [
+                    'Colonia', 'colonia', 'neighborhood', 'barrio'
+                ]);
+                
+                const cp = this.obtenerValorSeguro(cliente, [
+                    'CP', 'cp', 'codigo_postal', 'Codigo Postal', 'postal_code', 'zip'
+                ]);
+                
+                const poblacion = this.obtenerValorSeguro(cliente, [
+                    'Población', 'poblacion', 'Ciudad', 'ciudad', 'Municipio', 'municipio', 'city'
+                ]);
 
-                return partes.length > 0 ? partes.join(', ') : 'Dirección no disponible';
+                console.log('Campos encontrados:', { calle, numeroExt, colonia, cp, poblacion }); // Debug
+
+                // Construir dirección paso a paso
+                const partesDireccion = [];
+
+                // Calle y número
+                if (calle && numeroExt) {
+                    partesDireccion.push(`${calle} ${numeroExt}`);
+                } else if (calle) {
+                    partesDireccion.push(calle);
+                } else if (numeroExt) {
+                    partesDireccion.push(`Núm. ${numeroExt}`);
+                }
+
+                // Colonia
+                if (colonia) {
+                    partesDireccion.push(`Col. ${colonia}`);
+                }
+
+                // CP
+                if (cp) {
+                    partesDireccion.push(`CP ${cp}`);
+                }
+
+                // Población
+                if (poblacion) {
+                    partesDireccion.push(poblacion);
+                }
+
+                const direccionFinal = partesDireccion.length > 0 ? partesDireccion.join(', ') : 'Dirección no disponible';
+                console.log('Dirección final:', direccionFinal); // Debug
+
+                return direccionFinal;
             }
 
             generarBotonesAccion(statusActual, statusRegistro) {
@@ -798,7 +919,22 @@
             }
 
             async registrarFactura() {
+                // PREVENIR REGISTRO DOBLE
+                if (this.estado.procesandoAccion) {
+                    console.log('Ya se está procesando una acción, ignorando...');
+                    return;
+                }
+
                 try {
+                    this.estado.procesandoAccion = true;
+                    
+                    // Deshabilitar botón
+                    const btnConfirmar = document.querySelector('#acciones-botones .btn-confirm');
+                    if (btnConfirmar) {
+                        btnConfirmar.disabled = true;
+                        btnConfirmar.innerHTML = '<span class="loading-spinner"></span>Registrando...';
+                    }
+
                     this.mostrarMensaje('Registrando factura...', 'loading');
                     
                     const payload = {
@@ -810,14 +946,30 @@
                     this.mostrarMensaje('✅ Factura registrada correctamente', 'success');
                     
                     setTimeout(() => this.volverAlInicio(), 3000);
+
                 } catch (error) {
                     this.mostrarMensaje(`Error al registrar: ${error.message}`, 'error');
                     setTimeout(() => this.volverAlInicio(), 3000);
+                } finally {
+                    this.estado.procesandoAccion = false;
                 }
             }
 
             async actualizarStatus(nuevoStatus, detalles = "") {
+                // PREVENIR ACTUALIZACIONES DOBLES
+                if (this.estado.procesandoAccion) {
+                    console.log('Ya se está procesando una acción, ignorando...');
+                    return;
+                }
+
                 try {
+                    this.estado.procesandoAccion = true;
+
+                    // Deshabilitar todos los botones de acción
+                    document.querySelectorAll('#acciones-botones button').forEach(btn => {
+                        btn.disabled = true;
+                    });
+
                     this.mostrarMensaje(`Actualizando a: ${nuevoStatus}...`, 'loading');
                     
                     const payload = {
@@ -833,9 +985,12 @@
                     this.mostrarMensaje(`✅ Status actualizado a: ${nuevoStatus}`, 'success');
                     
                     setTimeout(() => this.volverAlInicio(), 3000);
+
                 } catch (error) {
                     this.mostrarMensaje(`Error al actualizar: ${error.message}`, 'error');
                     setTimeout(() => this.volverAlInicio(), 3000);
+                } finally {
+                    this.estado.procesandoAccion = false;
                 }
             }
 
@@ -924,6 +1079,7 @@
                 // Resetear estado
                 this.estado.modulo = null;
                 this.estado.datosPendientes = {};
+                this.estado.procesandoAccion = false; // Resetear flag
 
                 // Ir a vista principal
                 this.cambiarVista('principal');
