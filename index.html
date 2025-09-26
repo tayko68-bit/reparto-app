@@ -154,10 +154,10 @@
                 if (!navigator.geolocation) return resolve("Geolocalización no soportada");
                 navigator.geolocation.getCurrentPosition(
                     p => {
-                        // ===== CORRECCIÓN DE LA URL DE GOOGLE MAPS =====
+                        // ===== CORRECCIÓN FINAL DE LA URL DE GOOGLE MAPS =====
                         const lat = p.coords.latitude;
                         const lon = p.coords.longitude;
-                        resolve(`https://maps.google.com/?q=${lat},${lon}`);
+                        resolve(`https://maps.google.com/?q=$?q=${lat},${lon}`);
                     },
                     () => resolve("No se pudo obtener la ubicación"),
                     { timeout: 10000 }
