@@ -662,10 +662,11 @@
                     this.estado.modulo === 'almacen' ? 'Confirmar Registro' : 'Siguiente Acción';
 
                 document.getElementById('accion-cliente').textContent = 
-                    cliente['Razón Social'] || cliente.nombre || 'Cliente N/A';
+                    this.obtenerValorSeguro(cliente, ['Razón Social', 'nombre'], 'Cliente N/A');
 
                 document.getElementById('accion-pedido-origen').textContent = 
-                    this.estado.datosPendientes.numeroPedidoOrigen || pedido.Numero_Pedido_Origen || 'N/A';
+                    this.estado.datosPendientes.numeroPedidoOrigen || 
+                    this.obtenerValorSeguro(pedido, ['Numero_Pedido_Origen'], 'N/A');
 
                 document.getElementById('accion-folio').textContent = 
                     this.estado.datosPendientes.idPedido || 'N/A';
@@ -674,7 +675,7 @@
                 document.getElementById('accion-direccion').textContent = direccion;
 
                 // Status actual
-                const statusActual = pedido.Status_Actual || 'Nuevo';
+                const statusActual = this.obtenerValorSeguro(pedido, ['Status_Actual'], 'Nuevo');
                 const statusSpan = document.getElementById('accion-status');
                 statusSpan.textContent = statusActual;
                 statusSpan.className = 'status-tag status-' + statusActual.replace(/\s+/g, '\\.');
@@ -686,13 +687,37 @@
                 this.limpiarMensaje();
             }
 
+            // Función auxiliar para obtener valores de forma segura
+            obtenerValorSeguro(objeto, campos, valorPorDefecto = '') {
+                if (!objeto || typeof objeto !== 'object') {
+                    return valorPorDefecto;
+                }
+
+                for (const campo of campos) {
+                    const valor = objeto[campo];
+                    if (valor !== null && valor !== undefined && valor !== '') {
+                        return String(valor);
+                    }
+                }
+
+                return valorPorDefecto;
+            }
+
             construirDireccion(cliente) {
-                const partes = [
-                    cliente.Calle || cliente.calle || '',
-                    cliente['Num ext.'] || cliente.numero || '',
-                    cliente.Colonia || cliente.colonia || '',
-                    cliente.Ciudad || cliente.ciudad || ''
-                ].filter(parte => parte.trim());
+                if (!cliente || typeof cliente !== 'object') {
+                    return 'Dirección no disponible';
+                }
+
+                // Obtener valores de forma segura y convertir a string
+                const calle = this.obtenerValorSeguro(cliente, ['Calle', 'calle']);
+                const numero = this.obtenerValorSeguro(cliente, ['Num ext.', 'numero']);
+                const colonia = this.obtenerValorSeguro(cliente, ['Colonia', 'colonia']);
+                const ciudad = this.obtenerValorSeguro(cliente, ['Ciudad', 'ciudad']);
+
+                // Filtrar solo las partes que tienen contenido
+                const partes = [calle, numero, colonia, ciudad].filter(parte => {
+                    return parte && typeof parte === 'string' && parte.trim().length > 0;
+                });
 
                 return partes.length > 0 ? partes.join(', ') : 'Dirección no disponible';
             }
