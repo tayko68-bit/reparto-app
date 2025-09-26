@@ -13,7 +13,7 @@
         .btn-main:hover { background-color: #0056b3; }
         .btn-secondary { background-color: #6c757d; }
         .btn-secondary:hover { background-color: #5a6268; }
-        .btn-alt { background-color: #28a745; margin-top: 20px;} /* Botón para el Plan B */
+        .btn-alt { background-color: #28a745; margin-top: 20px;}
         .btn-alt:hover { background-color: #218838; }
         input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
         #lector-qr { width: 100%; border: 2px solid #ccc; border-radius: 8px; overflow: hidden; margin-top: 20px; }
@@ -76,52 +76,38 @@
         const statusMessage = document.getElementById('status-message');
         const qrInputFile = document.getElementById('qr-input-file');
 
+        // Navegación
         document.getElementById('btn-rol-almacen').addEventListener('click', () => {
-            vistaPrincipal.classList.add('hidden');
-            vistaAlmacen.classList.remove('hidden');
+            vistaPrincipal.classList.add('hidden'); vistaAlmacen.classList.remove('hidden');
         });
         document.getElementById('btn-rol-repartidor').addEventListener('click', () => {
-            vistaPrincipal.classList.add('hidden');
-            vistaRepartidor.classList.remove('hidden');
+            vistaPrincipal.classList.add('hidden'); vistaRepartidor.classList.remove('hidden');
         });
         document.getElementById('btn-volver-almacen').addEventListener('click', () => location.reload());
         document.getElementById('btn-volver-repartidor').addEventListener('click', () => location.reload());
         
+        // Iniciar Scanners
         function iniciarScanner(modo) {
             modoActual = modo;
             ocultarVistas();
             lectorQrDiv.classList.remove('hidden');
-            
             qrScannerInstance = new Html5Qrcode("lector-qr");
-            qrScannerInstance.start(
-                { facingMode: "environment" },
-                { fps: 10, qrbox: { width: 250, height: 250 } },
-                onScanSuccess,
-                () => {}
+            qrScannerInstance.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess, () => {}
             ).catch(err => mostrarMensaje(`Error al iniciar cámara: ${err}`, 'error'));
         }
 
         function iniciarScannerConFoto(modo) {
             modoActual = modo;
-            // Disparamos el input de archivo
             qrInputFile.click();
         }
 
         qrInputFile.addEventListener('change', e => {
-            if (e.target.files.length === 0) {
-                return;
-            }
+            if (e.target.files.length === 0) return;
             const imageFile = e.target.files[0];
-            
-            // Usamos la misma librería para escanear el archivo de imagen
-            const fileScanner = new Html5Qrcode("lector-qr"); // Usamos el div como dummy
+            const fileScanner = new Html5Qrcode("lector-qr");
             fileScanner.scanFile(imageFile, true)
-                .then(decodedText => {
-                    onScanSuccess(decodedText);
-                })
-                .catch(err => {
-                    mostrarMensaje(`No se encontró un QR en la imagen: ${err}`, 'error');
-                });
+                .then(onScanSuccess)
+                .catch(err => mostrarMensaje(`No se encontró un QR en la imagen: ${err}`, 'error'));
         });
         
         function detenerScanner() {
@@ -135,7 +121,6 @@
         async function onScanSuccess(decodedText) {
             detenerScanner();
             mostrarMensaje("Procesando...", "");
-
             try {
                 const url = new URL(decodedText);
                 const urlParams = new URLSearchParams(url.search);
@@ -156,11 +141,13 @@
                     payload = { accion: 'actualizar_status', idPedido, nuevoStatus: modoActual, usuario };
                     if (modoActual === 'Entregado') payload.ubicacion = await obtenerUbicacion();
                 }
-                
                 await enviarDatosAlScript(payload);
+
             } catch (error) {
+                // AQUÍ ESTÁ EL CAMBIO: Mostramos una alerta
+                alert(`ERROR EN PROCESAMIENTO:\n${error.message}`);
                 mostrarMensaje(`Error: ${error.message}`, 'error');
-                setTimeout(() => location.reload(), 4000);
+                setTimeout(() => location.reload(), 5000);
             }
         }
         
@@ -169,14 +156,19 @@
                 const response = await fetch(SCRIPT_URL, {
                     method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' }, redirect: 'follow'
                 });
+                if (!response.ok) {
+                    throw new Error(`Error de red o del servidor: ${response.status} ${response.statusText}`);
+                }
                 const result = await response.json();
                 if (result.status === 'success') mostrarMensaje(result.data, 'success');
                 else throw new Error(result.message);
             } catch (error) {
-                mostrarMensaje("Acción enviada. Revisa el Sheet para confirmar.", 'success');
-                console.error("Error en Fetch, posible CORS:", error);
+                // AQUÍ ESTÁ EL CAMBIO: Mostramos una alerta
+                alert(`ERROR DE COMUNICACIÓN:\n${error.message}`);
+                mostrarMensaje("Error al comunicar con el servidor.", 'error');
+                console.error("Error en Fetch:", error);
             } finally {
-                setTimeout(() => location.reload(), 4000);
+                setTimeout(() => location.reload(), 5000);
             }
         }
 
@@ -184,7 +176,7 @@
             return new Promise(resolve => {
                 if (!navigator.geolocation) return resolve("Geolocalización no soportada");
                 navigator.geolocation.getCurrentPosition(
-                    p => resolve(`https://maps.google.com/?q=$${p.coords.latitude},${p.coords.longitude}`),
+                    p => resolve(`http://googleusercontent.com/maps.google.com/4{p.coords.latitude},${p.coords.longitude}`),
                     () => resolve("No se pudo obtener la ubicación"),
                     { timeout: 10000 }
                 );
@@ -197,12 +189,10 @@
         }
         
         function ocultarVistas() {
-            vistaPrincipal.classList.add('hidden');
-            vistaAlmacen.classList.add('hidden');
-            vistaRepartidor.classList.add('hidden');
+            vistaPrincipal.classList.add('hidden'); vistaAlmacen.classList.add('hidden'); vistaRepartidor.classList.add('hidden');
         }
 
-        // Eventos para los botones
+        // Eventos
         document.getElementById('btn-escanear-factura').addEventListener('click', () => iniciarScanner('registrar'));
         document.getElementById('btn-escanear-foto-almacen').addEventListener('click', () => iniciarScannerConFoto('registrar'));
         
@@ -212,7 +202,7 @@
 
         btnTransito.addEventListener('click', () => iniciarScanner('En Tránsito'));
         btnEntregado.addEventListener('click', () => iniciarScanner('Entregado'));
-        // El botón de foto para el repartidor necesita saber qué acción tomar
+        
         btnFotoRepartidor.addEventListener('click', () => {
              const accion = prompt("¿Qué acción quieres registrar? Escribe 'Transito' o 'Entregado'");
              if (accion && accion.toLowerCase().startsWith('transito')) {
