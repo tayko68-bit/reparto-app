@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Trazabilidad</title>
     <style>
-        /* El CSS se mantiene igual que la versión anterior */
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 10px; background-color: #f4f4f9; color: #333; }
         .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         h1, h2 { color: #444; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-top: 0;}
@@ -82,9 +81,8 @@
         <div class="status-message"></div>
     </div>
 
-    <script type="module">
-        import QrScanner from "https://cdn.jsdelivrnet/npm/qr-scanner@1.4.2/qr-scanner.min.js";
-
+    <script src="https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner.min.js"></script>
+    <script>
         // CONFIGURACIÓN Y ESTADO
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyAqMuAU0vtAccSTTqpcnXpGQkr_xv3O2lNNHmwXH4xIVTwcncZXxk044eRp64TOgD0g/exec";
         let estado = { modulo: null, qrScanner: null, datosPendientes: {} };
@@ -107,7 +105,11 @@
         // LÓGICA DEL ESCÁNER
         function iniciarScanner() {
             cambiarVista('lector-container');
-            estado.qrScanner = new QrScanner(videoElement, result => onScanSuccess(result.data), { highlightScanRegion: true });
+            estado.qrScanner = new QrScanner(
+                videoElement,
+                result => onScanSuccess(result.data),
+                { highlightScanRegion: true, onDecodeError: (error) => { /* Ignorar errores continuos */ } }
+            );
             estado.qrScanner.start().catch(err => mostrarMensaje(`Error al iniciar cámara: ${err}`, 'error'));
         }
         function detenerScanner() {
@@ -116,7 +118,6 @@
 
         async function onScanSuccess(decodedText) {
             detenerScanner();
-
             mostrarMensaje("Consultando información...", "");
             try {
                 const url = new URL(decodedText);
@@ -128,20 +129,17 @@
                 estado.datosPendientes.idPedido = idPedido;
                 estado.datosPendientes.rfc = rfc || "SIN_RFC";
 
-                // LA LÓGICA DE CAPTURA DE DATOS AHORA ES MÁS COMPLETA
                 if (estado.modulo === 'almacen') {
                     const numeroPedido = document.getElementById('numero-pedido').value;
                     const surtidor = document.getElementById('nombre-surtidor-almacen').value;
                     if (!numeroPedido.trim() || !surtidor.trim()) throw new Error("Rellena el Nº de Pedido y tu Nombre.");
                     estado.datosPendientes.numeroPedido = numeroPedido;
                     estado.datosPendientes.surtidor = surtidor;
-                    // Siempre capturamos la ubicación
                     estado.datosPendientes.ubicacion = await obtenerUbicacion();
                 } else if (estado.modulo === 'repartidor') {
                     const repartidor = document.getElementById('nombre-repartidor').value;
                     if (!repartidor.trim()) throw new Error("Escribe tu nombre de repartidor.");
                     estado.datosPendientes.repartidor = repartidor;
-                     // Siempre capturamos la ubicación
                     estado.datosPendientes.ubicacion = await obtenerUbicacion();
                 }
 
@@ -167,20 +165,20 @@
         // LÓGICA DE PANTALLAS
         function mostrarConfirmacionAlmacen(cliente) {
             document.getElementById('conf-cliente').textContent = cliente['Razón Social'] || 'N/A';
-            document.getElementById('conf-direccion').textContent = `${cliente.Calle || ''} ${cliente['Num ext.'] || ''}`.trim();
+            document.getElementById('conf-direccion').textContent = `${cliente.Calle || ''} ${cliente['Num ext.'] || ''}, ${cliente.Colonia || ''}`.trim();
             document.getElementById('conf-pedido').textContent = estado.datosPendientes.numeroPedido;
             cambiarVista('vista-almacen-confirmacion');
         }
 
         function mostrarAccionesRepartidor(pedido) {
             estado.datosPendientes.pedido = pedido;
-            document.getElementById('reparto-cliente').textContent = pedido.Razón_Social;
+            document.getElementById('reparto-cliente').textContent = pedido.Status_Actual === 'Facturado' ? pedido.Razón_Social : pedido.Razón_Social; // Corregido
             const statusSpan = document.getElementById('reparto-status');
             statusSpan.textContent = pedido.Status_Actual;
             statusSpan.className = 'status-tag status-' + (pedido.Status_Actual || "").replace(/\s+/g, '.');
 
             const accionesDiv = document.getElementById('acciones-repartidor');
-            accionesDiv.innerHTML = ''; // Limpiar
+accionesDiv.innerHTML = ''; // Limpiar
 
             const status = pedido.Status_Actual;
             if (status === 'Facturado' || status === 'En Almacén (Devolución)') {
