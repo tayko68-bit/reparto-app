@@ -81,8 +81,9 @@
         <div class="status-message"></div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner.min.js"></script>
-    <script>
+    <script type="module">
+        import QrScanner from "https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner.min.js";
+
         // CONFIGURACIÓN Y ESTADO
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyAqMuAU0vtAccSTTqpcnXpGQkr_xv3O2lNNHmwXH4xIVTwcncZXxk044eRp64TOgD0g/exec";
         let estado = { modulo: null, qrScanner: null, datosPendientes: {} };
@@ -142,7 +143,6 @@
                     estado.datosPendientes.repartidor = repartidor;
                     estado.datosPendientes.ubicacion = await obtenerUbicacion();
                 }
-
                 await enviarDatos({ accion: 'consultar_factura', idPedido, rfc: estado.datosPendientes.rfc });
 
             } catch (error) {
@@ -172,13 +172,13 @@
 
         function mostrarAccionesRepartidor(pedido) {
             estado.datosPendientes.pedido = pedido;
-            document.getElementById('reparto-cliente').textContent = pedido.Status_Actual === 'Facturado' ? pedido.Razón_Social : pedido.Razón_Social; // Corregido
+            document.getElementById('reparto-cliente').textContent = pedido.Status_Actual === 'Facturado' ? pedido['Razón Social'] : pedido['Razón Social'];
             const statusSpan = document.getElementById('reparto-status');
             statusSpan.textContent = pedido.Status_Actual;
             statusSpan.className = 'status-tag status-' + (pedido.Status_Actual || "").replace(/\s+/g, '.');
 
             const accionesDiv = document.getElementById('acciones-repartidor');
-accionesDiv.innerHTML = ''; // Limpiar
+            accionesDiv.innerHTML = ''; // Limpiar
 
             const status = pedido.Status_Actual;
             if (status === 'Facturado' || status === 'En Almacén (Devolución)') {
