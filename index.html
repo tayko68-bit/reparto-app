@@ -188,14 +188,7 @@
         .status-En\.Almacén\.KATEX_INLINE_OPENDevoluciónKATEX_INLINE_CLOSE { background-color: var(--danger-color); }
         .status-Entrega\.Fallida { background-color: var(--danger-color); }
 
-        #reader {
-            width: 100%;
-            border-radius: 8px;
-            overflow: hidden;
-            margin-bottom: 15px;
-        }
-
-        .scanner-container {
+        #lector-container {
             position: fixed;
             top: 0;
             left: 0;
@@ -210,37 +203,46 @@
             padding: 20px;
         }
 
-        .scanner-content {
-            background: white;
+        #lector-qr {
+            width: 90%;
+            max-width: 400px;
+            height: 300px;
             border-radius: 12px;
-            padding: 20px;
-            max-width: 500px;
-            width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
+            object-fit: cover;
+            border: 3px solid white;
         }
 
-        .scanner-controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .scanner-controls button {
-            flex: 1;
-            margin: 0;
-            padding: 12px;
-            font-size: 16px;
-        }
-
-        .camera-info {
+        .scanner-header {
+            color: white;
             text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .scanner-header h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.5em;
+        }
+
+        .scanner-tip {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
             padding: 10px;
-            background-color: #f8f9fa;
             border-radius: 8px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
+            text-align: center;
             font-size: 14px;
-            color: var(--text-light-color);
+        }
+
+        .close-scanner {
+            background-color: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
         }
 
         .descripcion {
@@ -248,17 +250,6 @@
             color: var(--text-light-color);
             margin-bottom: 20px;
             font-style: italic;
-        }
-
-        .scan-tip {
-            background-color: #fff3cd;
-            border: 1px solid #ffeaa7;
-            color: #856404;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            font-size: 14px;
-            text-align: center;
         }
 
         @media (max-width: 480px) {
@@ -275,8 +266,9 @@
                 padding: 14px;
             }
 
-            .scanner-controls {
-                flex-direction: column;
+            #lector-qr {
+                width: 95%;
+                height: 250px;
             }
         }
     </style>
@@ -367,37 +359,25 @@
         </div>
 
         <!-- Scanner -->
-        <div id="scanner-container" class="scanner-container hidden">
-            <div class="scanner-content">
-                <h3 style="text-align: center; margin-top: 0;">📸 Escanear Código QR</h3>
-                
-                <div class="scan-tip">
-                    💡 Tip: Usa la cámara trasera para mejores resultados
+        <div id="lector-container" class="hidden">
+            <div class="scanner-header">
+                <h3>📸 Escanear Código QR</h3>
+                <div class="scanner-tip">
+                    Enfoca el código QR dentro del marco
                 </div>
-
-                <div class="camera-info" id="camera-info">
-                    Iniciando cámara...
-                </div>
-
-                <div class="scanner-controls">
-                    <button type="button" id="btn-cambiar-camara" class="btn-warning">
-                        🔄 Cambiar Cámara
-                    </button>
-                    <button type="button" id="btn-cerrar-scanner" class="btn-cancel">
-                        ❌ Cerrar
-                    </button>
-                </div>
-
-                <div id="reader"></div>
             </div>
+            <video id="lector-qr" autoplay muted playsinline></video>
+            <button type="button" class="close-scanner">
+                ❌ Cerrar Escáner
+            </button>
         </div>
 
         <!-- Mensajes de estado -->
         <div class="status-message" id="status-message"></div>
     </div>
 
-    <!-- Librería QR Scanner -->
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <!-- Librería QR Scanner (la original que funcionaba bien) -->
+    <script src="https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner.umd.min.js"></script>
     
     <script>
         // APLICACIÓN PRINCIPAL
@@ -407,9 +387,7 @@
                 this.estado = {
                     modulo: null,
                     scanner: null,
-                    datosPendientes: {},
-                    camarasDisponibles: [],
-                    camaraActual: 0
+                    datosPendientes: {}
                 };
                 this.inicializar();
             }
@@ -446,13 +424,9 @@
                     btn.addEventListener('click', () => this.volverAlInicio());
                 });
 
-                // Controles del scanner
-                document.getElementById('btn-cerrar-scanner').addEventListener('click', () => {
+                // Cerrar scanner
+                document.querySelector('.close-scanner').addEventListener('click', () => {
                     this.detenerScanner();
-                });
-
-                document.getElementById('btn-cambiar-camara').addEventListener('click', () => {
-                    this.cambiarCamara();
                 });
 
                 // Confirmar fallo
@@ -463,13 +437,14 @@
 
             cambiarVista(vista) {
                 // Ocultar todas las vistas
-                document.querySelectorAll('.vista, .scanner-container').forEach(v => {
+                document.querySelectorAll('.vista, #lector-container').forEach(v => {
                     v.classList.add('hidden');
                 });
 
                 // Mostrar vista solicitada
                 const elemento = document.getElementById(`vista-${vista}`) || 
-                                document.getElementById(`${vista}-container`);
+                                document.getElementById(`${vista}-container`) ||
+                                document.getElementById('lector-container');
                 if (elemento) {
                     elemento.classList.remove('hidden');
                 }
@@ -505,143 +480,54 @@
                 return true;
             }
 
-            async obtenerCamaras() {
-                try {
-                    const cameras = await Html5Qrcode.getCameras();
-                    if (cameras.length === 0) {
-                        throw new Error('No se encontraron cámaras disponibles');
-                    }
-
-                    this.estado.camarasDisponibles = cameras;
-                    
-                    // Buscar cámara trasera prioritariamente
-                    const indiceCamaraTrasera = cameras.findIndex(camera => {
-                        const label = camera.label.toLowerCase();
-                        return label.includes('back') || 
-                               label.includes('rear') || 
-                               label.includes('trasera') ||
-                               label.includes('environment') ||
-                               (!label.includes('front') && !label.includes('user') && !label.includes('selfie'));
-                    });
-
-                    // Si encontramos cámara trasera, usarla; si no, usar la primera disponible
-                    this.estado.camaraActual = indiceCamaraTrasera !== -1 ? indiceCamaraTrasera : 0;
-                    
-                    return cameras[this.estado.camaraActual];
-                } catch (error) {
-                    throw new Error(`Error al obtener cámaras: ${error.message}`);
-                }
-            }
-
             async iniciarScanner() {
                 try {
-                    this.cambiarVista('scanner');
-                    this.actualizarInfoCamara('Iniciando cámara...');
-                    this.mostrarMensaje('Preparando escáner...', 'loading');
+                    this.cambiarVista('lector');
+                    this.mostrarMensaje('Iniciando cámara...', 'loading');
 
-                    // Obtener cámaras disponibles
-                    const cameraSeleccionada = await this.obtenerCamaras();
-
-                    this.estado.scanner = new Html5Qrcode("reader");
+                    const videoElement = document.getElementById('lector-qr');
                     
-                    await this.estado.scanner.start(
-                        cameraSeleccionada.id,
+                    // Configurar QrScanner para usar cámara trasera automáticamente
+                    this.estado.scanner = new QrScanner(
+                        videoElement,
+                        result => this.onScanSuccess(result.data),
                         {
-                            fps: 10,
-                            qrbox: { width: 250, height: 250 },
-                            aspectRatio: 1.0
-                        },
-                        (decodedText) => this.onScanSuccess(decodedText),
-                        (errorMessage) => {
-                            // Solo mostrar errores importantes, no los de escaneo normal
-                            if (!errorMessage.includes('No QR code found')) {
-                                console.log(`Scanner: ${errorMessage}`);
+                            // Configuración para preferir cámara trasera
+                            preferredCamera: 'environment',
+                            highlightScanRegion: true,
+                            highlightCodeOutline: true,
+                            maxScansPerSecond: 5,
+                            // Configuración de la región de escaneo
+                            calculateScanRegion: (video) => {
+                                const smallestDimension = Math.min(video.videoWidth, video.videoHeight);
+                                const scanRegionSize = Math.round(0.75 * smallestDimension);
+                                return {
+                                    x: Math.round((video.videoWidth - scanRegionSize) / 2),
+                                    y: Math.round((video.videoHeight - scanRegionSize) / 2),
+                                    width: scanRegionSize,
+                                    height: scanRegionSize,
+                                    downScaledWidth: 400,
+                                    downScaledHeight: 400,
+                                };
                             }
                         }
                     );
 
-                    this.actualizarInfoCamara(this.obtenerNombreCamara());
+                    await this.estado.scanner.start();
                     this.limpiarMensaje();
 
                 } catch (error) {
                     console.error('Error al iniciar scanner:', error);
-                    this.mostrarMensaje(`Error: ${error.message}`, 'error');
+                    this.mostrarMensaje(`Error al acceder a la cámara: ${error.message}`, 'error');
                     this.volverAlInicio();
-                }
-            }
-
-            async cambiarCamara() {
-                if (this.estado.camarasDisponibles.length <= 1) {
-                    this.mostrarMensaje('Solo hay una cámara disponible', 'error');
-                    return;
-                }
-
-                try {
-                    this.actualizarInfoCamara('Cambiando cámara...');
-                    
-                    // Detener scanner actual
-                    if (this.estado.scanner) {
-                        await this.estado.scanner.stop();
-                    }
-
-                    // Cambiar al siguiente índice de cámara
-                    this.estado.camaraActual = (this.estado.camaraActual + 1) % this.estado.camarasDisponibles.length;
-                    const nuevaCamara = this.estado.camarasDisponibles[this.estado.camaraActual];
-
-                    // Reiniciar con nueva cámara
-                    await this.estado.scanner.start(
-                        nuevaCamara.id,
-                        {
-                            fps: 10,
-                            qrbox: { width: 250, height: 250 },
-                            aspectRatio: 1.0
-                        },
-                        (decodedText) => this.onScanSuccess(decodedText),
-                        (errorMessage) => {
-                            if (!errorMessage.includes('No QR code found')) {
-                                console.log(`Scanner: ${errorMessage}`);
-                            }
-                        }
-                    );
-
-                    this.actualizarInfoCamara(this.obtenerNombreCamara());
-                    this.mostrarMensaje('Cámara cambiada correctamente', 'success');
-                    setTimeout(() => this.limpiarMensaje(), 2000);
-
-                } catch (error) {
-                    console.error('Error al cambiar cámara:', error);
-                    this.mostrarMensaje(`Error al cambiar cámara: ${error.message}`, 'error');
-                }
-            }
-
-            obtenerNombreCamara() {
-                if (this.estado.camarasDisponibles.length === 0) return 'Cámara desconocida';
-                
-                const camara = this.estado.camarasDisponibles[this.estado.camaraActual];
-                const label = camara.label.toLowerCase();
-                
-                let tipo = 'Cámara';
-                if (label.includes('back') || label.includes('rear') || label.includes('trasera')) {
-                    tipo = '📷 Cámara Trasera';
-                } else if (label.includes('front') || label.includes('user') || label.includes('selfie')) {
-                    tipo = '🤳 Cámara Frontal';
-                }
-                
-                return `${tipo} (${this.estado.camaraActual + 1}/${this.estado.camarasDisponibles.length})`;
-            }
-
-            actualizarInfoCamara(texto) {
-                const infoDiv = document.getElementById('camera-info');
-                if (infoDiv) {
-                    infoDiv.textContent = texto;
                 }
             }
 
             async detenerScanner() {
                 if (this.estado.scanner) {
                     try {
-                        await this.estado.scanner.stop();
-                        this.estado.scanner.clear();
+                        this.estado.scanner.stop();
+                        this.estado.scanner.destroy();
                         this.estado.scanner = null;
                     } catch (error) {
                         console.error('Error al detener scanner:', error);
@@ -1013,8 +899,6 @@
                 // Resetear estado
                 this.estado.modulo = null;
                 this.estado.datosPendientes = {};
-                this.estado.camarasDisponibles = [];
-                this.estado.camaraActual = 0;
 
                 // Ir a vista principal
                 this.cambiarVista('principal');
