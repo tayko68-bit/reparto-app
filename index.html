@@ -864,9 +864,8 @@
                     this.estado.cameraStream = await navigator.mediaDevices.getUserMedia({
                         video: { 
                             facingMode: 'environment',
-                            width: { ideal: 720, max: 1280 },
-                            height: { ideal: 1280, max: 1920 },
-                            aspectRatio: { ideal: 0.5625 } // 9:16 (vertical)
+                            width: { ideal: 1920, max: 2560 },
+                            height: { ideal: 1080, max: 1440 }
                         }
                     });
                     
@@ -880,85 +879,113 @@
                 }
             }
 
-           capturarFoto() {
-    const video = document.getElementById('camara-video');
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+            // FUNCIÓN DE CAPTURA MEJORADA PARA FORZAR ORIENTACIÓN VERTICAL
+            capturarFoto() {
+                const video = document.getElementById('camara-video');
+                
+                // Esperar a que el video tenga dimensiones
+                if (video.videoWidth === 0 || video.videoHeight === 0) {
+                    console.error('Video no tiene dimensiones válidas');
+                    return;
+                }
 
-    // Obtener dimensiones reales del video
-    const videoWidth = video.videoWidth;
-    const videoHeight = video.videoHeight;
-    
-    console.log('Video original:', { width: videoWidth, height: videoHeight });
+                // Crear canvas temporal para captura
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // Capturar frame completo del video
+                tempCanvas.width = video.videoWidth;
+                tempCanvas.height = video.videoHeight;
+                tempCtx.drawImage(video, 0, 0);
+                
+                // Crear canvas final con orientación correcta
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Determinar si necesitamos rotar
+                const esHorizontal = video.videoWidth > video.videoHeight;
+                
+                console.log('Dimensiones del video:', {
+                    width: video.videoWidth,
+                    height: video.videoHeight,
+                    esHorizontal: esHorizontal
+                });
+                
+                // Definir dimensiones finales (siempre vertical)
+                const maxWidth = 800;
+                const maxHeight = 1200;
+                
+                let finalWidth, finalHeight;
+                
+                if (esHorizontal) {
+                    // Si el video es horizontal, rotamos 90 grados
+                    // Intercambiamos ancho y alto
+                    const aspectRatio = video.videoHeight / video.videoWidth;
+                    
+                    if (aspectRatio > maxHeight / maxWidth) {
+                        finalHeight = maxHeight;
+                        finalWidth = Math.round(finalHeight / aspectRatio);
+                    } else {
+                        finalWidth = maxWidth;
+                        finalHeight = Math.round(finalWidth * aspectRatio);
+                    }
+                    
+                    canvas.width = finalWidth;
+                    canvas.height = finalHeight;
+                    
+                    // Rotar y dibujar
+                    ctx.save();
+                    ctx.translate(canvas.width / 2, canvas.height / 2);
+                    ctx.rotate(Math.PI / 2);
+                    
+                    // Al rotar, las dimensiones se intercambian
+                    ctx.drawImage(tempCanvas, -finalHeight / 2, -finalWidth / 2, finalHeight, finalWidth);
+                    ctx.restore();
+                    
+                } else {
+                    // Si ya es vertical, solo redimensionar
+                    const aspectRatio = video.videoHeight / video.videoWidth;
+                    
+                    if (aspectRatio > maxHeight / maxWidth) {
+                        finalHeight = maxHeight;
+                        finalWidth = Math.round(finalHeight / aspectRatio);
+                    } else {
+                        finalWidth = maxWidth;
+                        finalHeight = Math.round(finalWidth * aspectRatio);
+                    }
+                    
+                    canvas.width = finalWidth;
+                    canvas.height = finalHeight;
+                    
+                    // Dibujar directo
+                    ctx.drawImage(tempCanvas, 0, 0, finalWidth, finalHeight);
+                }
+                
+                // Convertir a base64 con buena calidad
+                const fotoBase64 = canvas.toDataURL('image/jpeg', 0.85);
+                
+                console.log('Foto capturada:', {
+                    videoOriginal: { width: video.videoWidth, height: video.videoHeight },
+                    canvasFinal: { width: canvas.width, height: canvas.height },
+                    rotada: esHorizontal,
+                    tamañoKB: Math.round(fotoBase64.length * 0.75 / 1024)
+                });
+                
+                // Guardar la foto
+                this.estado.fotoFactura = fotoBase64;
+                
+                // Mostrar preview
+                const preview = document.getElementById('foto-factura-preview');
+                preview.src = fotoBase64;
+                preview.classList.remove('hidden');
+                
+                // Cambiar texto del botón
+                document.getElementById('btn-capturar-factura').textContent = '✅ Factura Capturada - Recapturar';
+                
+                this.detenerCamara();
+                this.mostrarMensaje('📄 Factura capturada correctamente', 'success');
+            }
 
-    // SIEMPRE forzar orientación vertical
-    // Si el video está en landscape, lo rotamos
-    const necesitaRotacion = videoWidth > videoHeight;
-    
-    // Definir dimensiones del canvas según orientación
-    if (necesitaRotacion) {
-        // Rotamos 90 grados, así que invertimos dimensiones
-        canvas.width = Math.min(videoHeight, 800);
-        canvas.height = Math.min(videoWidth, 1200);
-    } else {
-        // Ya está vertical
-        canvas.width = Math.min(videoWidth, 800);
-        canvas.height = Math.min(videoHeight, 1200);
-    }
-
-    // Mantener proporción
-    const scale = Math.min(
-        canvas.width / (necesitaRotacion ? videoHeight : videoWidth),
-        canvas.height / (necesitaRotacion ? videoWidth : videoHeight)
-    );
-
-    const scaledWidth = (necesitaRotacion ? videoHeight : videoWidth) * scale;
-    const scaledHeight = (necesitaRotacion ? videoWidth : videoHeight) * scale;
-
-    // Centrar la imagen
-    const x = (canvas.width - scaledWidth) / 2;
-    const y = (canvas.height - scaledHeight) / 2;
-
-    // Limpiar canvas
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    if (necesitaRotacion) {
-        // Rotar 90 grados para forzar vertical
-        ctx.save();
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate(Math.PI / 2);
-        ctx.drawImage(video, -scaledHeight / 2, -scaledWidth / 2, scaledHeight, scaledWidth);
-        ctx.restore();
-    } else {
-        // Ya está vertical, dibujar normal
-        ctx.drawImage(video, x, y, scaledWidth, scaledHeight);
-    }
-
-    // Convertir a base64 con buena calidad
-    const fotoBase64 = canvas.toDataURL('image/jpeg', 0.8);
-    
-    console.log('Foto final:', {
-        canvasWidth: canvas.width,
-        canvasHeight: canvas.height,
-        rotada: necesitaRotacion,
-        sizeKB: Math.round(fotoBase64.length * 0.75 / 1024)
-    });
-    
-    // Guardar la foto
-    this.estado.fotoFactura = fotoBase64;
-    
-    // Mostrar preview
-    const preview = document.getElementById('foto-factura-preview');
-    preview.src = fotoBase64;
-    preview.classList.remove('hidden');
-    
-    // Cambiar texto del botón
-    document.getElementById('btn-capturar-factura').textContent = '✅ Factura Capturada - Recapturar';
-    
-    this.detenerCamara();
-    this.mostrarMensaje('📄 Factura capturada correctamente', 'success');
-}
             detenerCamara() {
                 if (this.estado.cameraStream) {
                     this.estado.cameraStream.getTracks().forEach(track => track.stop());
@@ -1002,7 +1029,7 @@
                 this.mostrarMensaje('✍️ Firma guardada correctamente', 'success');
             }
 
-            // CONFIRMAR ENTREGA - VERSIÓN SIMPLIFICADA QUE USA actualizar_status
+            // CONFIRMAR ENTREGA - USANDO LA NUEVA ACCIÓN CON FOTOS
             async confirmarEntregaCompleta() {
                 if (this.estado.procesandoAccion) {
                     return;
@@ -1016,7 +1043,7 @@
                     btnConfirmar.disabled = true;
                     btnConfirmar.innerHTML = '<span class="loading-spinner"></span>Procesando...';
 
-                    this.mostrarMensaje('📝 Registrando entrega...', 'loading');
+                    this.mostrarMensaje('📝 Registrando entrega con evidencias...', 'loading');
 
                     // Obtener información adicional
                     this.estado.infoAdicional = document.getElementById('info-adicional').value.trim();
@@ -1027,34 +1054,33 @@
                     if (this.estado.infoAdicional) {
                         detallesEntrega += ` - ${this.estado.infoAdicional}`;
                     }
-                    
-                    if (this.estado.fotoFactura) {
-                        detallesEntrega += " - Con foto de factura";
-                    }
-                    
-                    if (this.estado.firmaCliente) {
-                        detallesEntrega += " - Con firma del cliente";
-                    }
 
-                    // Usar la acción que YA EXISTE en tu script
-                   const payload = {
-    accion: 'actualizar_status_con_foto', // USAR LA NUEVA ACCIÓN
-    idPedido: this.estado.datosPendientes.idPedido,
-    nuevoStatus: 'Entregado',
-    usuario: this.estado.datosPendientes.usuario,
-    ubicacion: this.estado.datosPendientes.ubicacion,
-    detalles: detallesEntrega,
-    fotoFactura: this.estado.fotoFactura,
-    firmaCliente: this.estado.firmaCliente
-};
+                    // USAR LA NUEVA ACCIÓN QUE GUARDA FOTOS
+                    const payload = {
+                        accion: 'actualizar_status_con_foto', // CAMBIO IMPORTANTE
+                        idPedido: this.estado.datosPendientes.idPedido,
+                        nuevoStatus: 'Entregado',
+                        usuario: this.estado.datosPendientes.usuario,
+                        ubicacion: this.estado.datosPendientes.ubicacion,
+                        detalles: detallesEntrega,
+                        fotoFactura: this.estado.fotoFactura,
+                        firmaCliente: this.estado.firmaCliente
+                    };
 
-                    console.log('=== ENVIANDO ACTUALIZACIÓN DE ENTREGA ===');
-                    console.log('Payload:', payload);
+                    console.log('=== ENVIANDO ACTUALIZACIÓN CON EVIDENCIAS ===');
+                    console.log('Payload:', {
+                        accion: payload.accion,
+                        idPedido: payload.idPedido,
+                        tieneFoto: !!payload.fotoFactura,
+                        tieneFirma: !!payload.firmaCliente,
+                        tamañoFoto: payload.fotoFactura ? Math.round(payload.fotoFactura.length / 1024) + ' KB' : 'N/A',
+                        tamañoFirma: payload.firmaCliente ? Math.round(payload.firmaCliente.length / 1024) + ' KB' : 'N/A'
+                    });
 
                     const resultado = await this.enviarDatos(payload);
-                    this.mostrarMensaje('✅ Entrega registrada correctamente', 'success');
+                    this.mostrarMensaje('✅ Entrega registrada correctamente con evidencias guardadas', 'success');
                     
-                    setTimeout(() => this.volverAlInicio(), 3000);
+                    setTimeout(() => this.volverAlInicio(), 4000);
 
                 } catch (error) {
                     console.error('Error en entrega:', error);
@@ -1561,8 +1587,8 @@
                     const callbackName = 'callback_' + Date.now() + '_' + Math.random().toString(36).substring(2);
                     const timeoutId = setTimeout(() => {
                         this.limpiarCallback(callbackName);
-                        reject(new Error('Timeout: El servidor tardó más de 30 segundos en responder'));
-                    }, 30000);
+                        reject(new Error('Timeout: El servidor tardó más de 45 segundos en responder'));
+                    }, 45000);
 
                     window[callbackName] = (response) => {
                         clearTimeout(timeoutId);
@@ -1682,4 +1708,3 @@
     </script>
 </body>
 </html>
-
