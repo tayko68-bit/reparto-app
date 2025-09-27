@@ -603,6 +603,7 @@
         // APLICACIÓN PRINCIPAL
         class SistemaTrazabilidad {
             constructor() {
+                // *** URL ACTUALIZADA ***
                 this.SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzL_F_ry-QPBWYMfwoG6kX8ROqUSPYiLnPX05gLa6nvMPShefhxU38n3Fb6f4Yxl2vEiQ/exec";
                 this.estado = {
                     modulo: null,
@@ -1048,7 +1049,7 @@
                 });
             }
 
-            // CONFIRMAR ENTREGA - VERSIÓN CON DEBUG Y FALLBACK
+            // *** FUNCIÓN CONFIRMAR ENTREGA ACTUALIZADA ***
             async confirmarEntregaCompleta() {
                 if (this.estado.procesandoAccion) {
                     return;
@@ -1061,7 +1062,7 @@
                     btnConfirmar.disabled = true;
                     btnConfirmar.innerHTML = '<span class="loading-spinner"></span>Procesando...';
 
-                    this.mostrarMensaje('📝 Preparando datos de entrega...', 'loading');
+                    this.mostrarMensaje('📝 Registrando entrega con evidencias...', 'loading');
 
                     // Obtener información adicional
                     this.estado.infoAdicional = document.getElementById('info-adicional').value.trim();
@@ -1073,89 +1074,73 @@
                         detallesEntrega += ` - ${this.estado.infoAdicional}`;
                     }
 
-                    // Verificar qué evidencias tenemos
+                    // Verificar evidencias
                     const tieneFoto = !!this.estado.fotoFactura;
                     const tieneFirma = !!this.estado.firmaCliente;
                     
-                    console.log('=== DEBUG EVIDENCIAS ===');
+                    console.log('=== PREPARANDO ENTREGA ===');
+                    console.log('URL del script:', this.SCRIPT_URL);
+                    console.log('ID Pedido:', this.estado.datosPendientes.idPedido);
                     console.log('Tiene foto:', tieneFoto);
                     console.log('Tiene firma:', tieneFirma);
-                    
+
+                    // PRIMERO: Probar solo con evidencias muy pequeñas
+                    let fotoMini = null;
+                    let firmaMini = null;
+
                     if (tieneFoto) {
-                        console.log('Tamaño foto (caracteres):', this.estado.fotoFactura.length);
-                        console.log('Tamaño foto (KB aprox):', Math.round(this.estado.fotoFactura.length / 1024));
-                    }
-                    
-                    if (tieneFirma) {
-                        console.log('Tamaño firma (caracteres):', this.estado.firmaCliente.length);
-                        console.log('Tamaño firma (KB aprox):', Math.round(this.estado.firmaCliente.length / 1024));
+                        console.log('Reduciendo foto...');
+                        fotoMini = await this.reducirImagen(this.estado.fotoFactura, 0.2, 150);
+                        console.log('Foto reducida a:', Math.round(fotoMini.length / 1024), 'KB');
                     }
 
-                    // PRIMERA PRUEBA: Sin fotos
-                    console.log('=== ENVIANDO SIN FOTOS PRIMERO ===');
-                    
-                    let payload = {
-                        accion: 'actualizar_status',
+                    if (tieneFirma) {
+                        console.log('Reduciendo firma...');
+                        firmaMini = await this.reducirImagen(this.estado.firmaCliente, 0.3, 100);
+                        console.log('Firma reducida a:', Math.round(firmaMini.length / 1024), 'KB');
+                    }
+
+                    const payload = {
+                        accion: 'actualizar_status_con_foto',
                         idPedido: this.estado.datosPendientes.idPedido,
                         nuevoStatus: 'Entregado',
                         usuario: this.estado.datosPendientes.usuario,
                         ubicacion: this.estado.datosPendientes.ubicacion,
-                        detalles: detallesEntrega + (tieneFoto ? ' - Con foto' : '') + (tieneFirma ? ' - Con firma' : '')
+                        detalles: detallesEntrega,
+                        fotoFactura: fotoMini,
+                        firmaCliente: firmaMini
                     };
 
-                    this.mostrarMensaje('📝 Registrando entrega básica...', 'loading');
-                    
+                    console.log('=== ENVIANDO PAYLOAD ===');
+                    console.log('Acción:', payload.accion);
+                    console.log('Tamaño total del payload:', JSON.stringify(payload).length, 'caracteres');
+
                     try {
+                        this.mostrarMensaje('📸 Guardando evidencias en Drive...', 'loading');
                         const resultado = await this.enviarDatos(payload);
-                        console.log('✅ Entrega básica exitosa:', resultado);
+                        console.log('✅ Respuesta exitosa:', resultado);
+                        this.mostrarMensaje('✅ Entrega y evidencias registradas en Drive', 'success');
+                    } catch (error) {
+                        console.warn('⚠️ Error con Drive, guardando solo entrega:', error);
                         
-                        // Si llegamos aquí, el problema son las fotos
-                        if (tieneFoto || tieneFirma) {
-                            this.mostrarMensaje('📸 Intentando guardar evidencias...', 'loading');
-                            
-                            // SEGUNDA PRUEBA: Con fotos pero más pequeñas
-                            const fotoReducida = tieneFoto ? await this.reducirImagen(this.estado.fotoFactura, 0.5, 400) : null;
-                            const firmaReducida = tieneFirma ? await this.reducirImagen(this.estado.firmaCliente, 0.6, 300) : null;
-                            
-                            console.log('=== INTENTANDO CON FOTOS REDUCIDAS ===');
-                            if (fotoReducida) {
-                                console.log('Foto reducida (KB):', Math.round(fotoReducida.length / 1024));
-                            }
-                            if (firmaReducida) {
-                                console.log('Firma reducida (KB):', Math.round(firmaReducida.length / 1024));
-                            }
-                            
-                            const payloadConFotos = {
-                                accion: 'actualizar_status_con_foto',
-                                idPedido: this.estado.datosPendientes.idPedido,
-                                nuevoStatus: 'Entregado',
-                                usuario: this.estado.datosPendientes.usuario,
-                                ubicacion: this.estado.datosPendientes.ubicacion,
-                                detalles: detallesEntrega,
-                                fotoFactura: fotoReducida,
-                                firmaCliente: firmaReducida
-                            };
-                            
-                            try {
-                                const resultadoFotos = await this.enviarDatos(payloadConFotos);
-                                console.log('✅ Evidencias guardadas:', resultadoFotos);
-                                this.mostrarMensaje('✅ Entrega y evidencias registradas correctamente', 'success');
-                            } catch (errorFotos) {
-                                console.warn('⚠️ Error guardando evidencias:', errorFotos);
-                                this.mostrarMensaje('✅ Entrega registrada (evidencias locales solamente)', 'success');
-                            }
-                        } else {
-                            this.mostrarMensaje('✅ Entrega registrada correctamente', 'success');
-                        }
+                        // Fallback: entrega sin fotos
+                        const payloadSimple = {
+                            accion: 'actualizar_status',
+                            idPedido: this.estado.datosPendientes.idPedido,
+                            nuevoStatus: 'Entregado',
+                            usuario: this.estado.datosPendientes.usuario,
+                            ubicacion: this.estado.datosPendientes.ubicacion,
+                            detalles: detallesEntrega + (tieneFoto ? ' - Con foto local' : '') + (tieneFirma ? ' - Con firma local' : '')
+                        };
                         
-                    } catch (errorBasico) {
-                        throw errorBasico;
+                        await this.enviarDatos(payloadSimple);
+                        this.mostrarMensaje('✅ Entrega registrada (evidencias solo en dispositivo)', 'success');
                     }
                     
                     setTimeout(() => this.volverAlInicio(), 4000);
 
                 } catch (error) {
-                    console.error('❌ Error en entrega:', error);
+                    console.error('❌ Error completo:', error);
                     this.mostrarMensaje(`Error: ${error.message}`, 'error');
                 } finally {
                     this.estado.procesandoAccion = false;
@@ -1780,4 +1765,3 @@
     </script>
 </body>
 </html>
-
