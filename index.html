@@ -880,80 +880,85 @@
                 }
             }
 
-            capturarFoto() {
-                const video = document.getElementById('camara-video');
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
+           capturarFoto() {
+    const video = document.getElementById('camara-video');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
 
-                // Definir tamaño máximo desde el principio
-                const maxWidth = 800;
-                const maxHeight = 1200;
-                
-                let videoWidth = video.videoWidth;
-                let videoHeight = video.videoHeight;
+    // Obtener dimensiones reales del video
+    const videoWidth = video.videoWidth;
+    const videoHeight = video.videoHeight;
+    
+    console.log('Video original:', { width: videoWidth, height: videoHeight });
 
-                // Si el video es más ancho que alto, rotarlo
-                if (videoWidth > videoHeight) {
-                    // Rotar 90 grados
-                    const temp = videoWidth;
-                    videoWidth = videoHeight;
-                    videoHeight = temp;
-                }
+    // SIEMPRE forzar orientación vertical
+    // Si el video está en landscape, lo rotamos
+    const necesitaRotacion = videoWidth > videoHeight;
+    
+    // Definir dimensiones del canvas según orientación
+    if (necesitaRotacion) {
+        // Rotamos 90 grados, así que invertimos dimensiones
+        canvas.width = Math.min(videoHeight, 800);
+        canvas.height = Math.min(videoWidth, 1200);
+    } else {
+        // Ya está vertical
+        canvas.width = Math.min(videoWidth, 800);
+        canvas.height = Math.min(videoHeight, 1200);
+    }
 
-                // Calcular dimensiones finales manteniendo proporción
-                let finalWidth = videoWidth;
-                let finalHeight = videoHeight;
-                
-                if (finalWidth > maxWidth) {
-                    finalHeight = (maxWidth / finalWidth) * finalHeight;
-                    finalWidth = maxWidth;
-                }
-                
-                if (finalHeight > maxHeight) {
-                    finalWidth = (maxHeight / finalHeight) * finalWidth;
-                    finalHeight = maxHeight;
-                }
+    // Mantener proporción
+    const scale = Math.min(
+        canvas.width / (necesitaRotacion ? videoHeight : videoWidth),
+        canvas.height / (necesitaRotacion ? videoWidth : videoHeight)
+    );
 
-                canvas.width = finalWidth;
-                canvas.height = finalHeight;
+    const scaledWidth = (necesitaRotacion ? videoHeight : videoWidth) * scale;
+    const scaledHeight = (necesitaRotacion ? videoWidth : videoHeight) * scale;
 
-                // Dibujar con las dimensiones calculadas
-                if (video.videoWidth > video.videoHeight) {
-                    ctx.save();
-                    ctx.translate(canvas.width / 2, canvas.height / 2);
-                    ctx.rotate(Math.PI / 2);
-                    ctx.drawImage(video, -finalHeight / 2, -finalWidth / 2, finalHeight, finalWidth);
-                    ctx.restore();
-                } else {
-                    ctx.drawImage(video, 0, 0, finalWidth, finalHeight);
-                }
+    // Centrar la imagen
+    const x = (canvas.width - scaledWidth) / 2;
+    const y = (canvas.height - scaledHeight) / 2;
 
-                // Convertir a base64 con calidad reducida
-                const fotoBase64 = canvas.toDataURL('image/jpeg', 0.7);
-                
-                console.log('Foto capturada y optimizada:', {
-                    originalWidth: video.videoWidth,
-                    originalHeight: video.videoHeight,
-                    finalWidth: finalWidth,
-                    finalHeight: finalHeight,
-                    sizeKB: Math.round(fotoBase64.length * 0.75 / 1024)
-                });
-                
-                // Guardar la foto
-                this.estado.fotoFactura = fotoBase64;
-                
-                // Mostrar preview
-                const preview = document.getElementById('foto-factura-preview');
-                preview.src = fotoBase64;
-                preview.classList.remove('hidden');
-                
-                // Cambiar texto del botón
-                document.getElementById('btn-capturar-factura').textContent = '✅ Factura Capturada - Recapturar';
-                
-                this.detenerCamara();
-                this.mostrarMensaje('📄 Factura capturada correctamente', 'success');
-            }
+    // Limpiar canvas
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    if (necesitaRotacion) {
+        // Rotar 90 grados para forzar vertical
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(Math.PI / 2);
+        ctx.drawImage(video, -scaledHeight / 2, -scaledWidth / 2, scaledHeight, scaledWidth);
+        ctx.restore();
+    } else {
+        // Ya está vertical, dibujar normal
+        ctx.drawImage(video, x, y, scaledWidth, scaledHeight);
+    }
+
+    // Convertir a base64 con buena calidad
+    const fotoBase64 = canvas.toDataURL('image/jpeg', 0.8);
+    
+    console.log('Foto final:', {
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height,
+        rotada: necesitaRotacion,
+        sizeKB: Math.round(fotoBase64.length * 0.75 / 1024)
+    });
+    
+    // Guardar la foto
+    this.estado.fotoFactura = fotoBase64;
+    
+    // Mostrar preview
+    const preview = document.getElementById('foto-factura-preview');
+    preview.src = fotoBase64;
+    preview.classList.remove('hidden');
+    
+    // Cambiar texto del botón
+    document.getElementById('btn-capturar-factura').textContent = '✅ Factura Capturada - Recapturar';
+    
+    this.detenerCamara();
+    this.mostrarMensaje('📄 Factura capturada correctamente', 'success');
+}
             detenerCamara() {
                 if (this.estado.cameraStream) {
                     this.estado.cameraStream.getTracks().forEach(track => track.stop());
@@ -1032,14 +1037,16 @@
                     }
 
                     // Usar la acción que YA EXISTE en tu script
-                    const payload = {
-                        accion: 'actualizar_status',
-                        idPedido: this.estado.datosPendientes.idPedido,
-                        nuevoStatus: 'Entregado',
-                        usuario: this.estado.datosPendientes.usuario,
-                        ubicacion: this.estado.datosPendientes.ubicacion,
-                        detalles: detallesEntrega
-                    };
+                   const payload = {
+    accion: 'actualizar_status_con_foto', // USAR LA NUEVA ACCIÓN
+    idPedido: this.estado.datosPendientes.idPedido,
+    nuevoStatus: 'Entregado',
+    usuario: this.estado.datosPendientes.usuario,
+    ubicacion: this.estado.datosPendientes.ubicacion,
+    detalles: detallesEntrega,
+    fotoFactura: this.estado.fotoFactura,
+    firmaCliente: this.estado.firmaCliente
+};
 
                     console.log('=== ENVIANDO ACTUALIZACIÓN DE ENTREGA ===');
                     console.log('Payload:', payload);
@@ -1675,3 +1682,4 @@
     </script>
 </body>
 </html>
+
