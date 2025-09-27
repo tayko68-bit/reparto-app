@@ -1084,6 +1084,17 @@ async confirmarEntregaCompleta() {
         const tieneFirma = !!this.estado.firmaCliente;
         
         console.log('=== PREPARANDO ENTREGA ULTRA OPTIMIZADA ===');
+        // AGREGAR ESTAS LÍNEAS DE DEBUG:
+if (tieneFoto) {
+    console.log('🔍 TAMAÑO ORIGINAL FOTO:', this.estado.fotoFactura.length, 'caracteres');
+    console.log('🔍 TAMAÑO ORIGINAL FOTO:', Math.round(this.estado.fotoFactura.length / 1024), 'KB');
+}
+
+if (tieneFirma) {
+    console.log('🔍 TAMAÑO ORIGINAL FIRMA:', this.estado.firmaCliente.length, 'caracteres');
+    console.log('🔍 TAMAÑO ORIGINAL FIRMA:', Math.round(this.estado.firmaCliente.length / 1024), 'KB');
+}
+        
         console.log('Tiene foto:', tieneFoto);
         console.log('Tiene firma:', tieneFirma);
 
@@ -1164,6 +1175,11 @@ async confirmarEntregaCompleta() {
             };
 
             console.log('=== ENVIANDO CON IMÁGENES MINI ===');
+            // AGREGAR ESTAS LÍNEAS DE DEBUG:
+console.log('🔍 PAYLOAD FINAL - Foto:', fotoMini ? Math.round(fotoMini.length / 1024) : 0, 'KB');
+console.log('🔍 PAYLOAD FINAL - Firma:', firmaMini ? Math.round(firmaMini.length / 1024) : 0, 'KB');
+console.log('🔍 PAYLOAD FINAL - Total:', Math.round(JSON.stringify(payload).length / 1024), 'KB');
+console.log('🔍 URL que se enviará tendrá:', Math.round((this.SCRIPT_URL + '?data=' + encodeURIComponent(JSON.stringify(payload))).length / 1024), 'KB');
             console.log('Payload final:', JSON.stringify(payload).length, 'caracteres');
 
             try {
@@ -1819,6 +1835,7 @@ async confirmarEntregaCompleta() {
     </script>
 </body>
 </html>
+
 
 
 
