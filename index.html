@@ -1049,7 +1049,7 @@
                 });
             }
 
-            // *** FUNCIÓN CONFIRMAR ENTREGA ACTUALIZADA ***
+            // FUNCIÓN CONFIRMAR ENTREGA COMPLETAMENTE OPTIMIZADA
             async confirmarEntregaCompleta() {
                 if (this.estado.procesandoAccion) {
                     return;
@@ -1062,7 +1062,7 @@
                     btnConfirmar.disabled = true;
                     btnConfirmar.innerHTML = '<span class="loading-spinner"></span>Procesando...';
 
-                    this.mostrarMensaje('📝 Registrando entrega con evidencias...', 'loading');
+                    this.mostrarMensaje('📝 Preparando entrega...', 'loading');
 
                     // Obtener información adicional
                     this.estado.infoAdicional = document.getElementById('info-adicional').value.trim();
@@ -1084,22 +1084,40 @@
                     console.log('Tiene foto:', tieneFoto);
                     console.log('Tiene firma:', tieneFirma);
 
-                    // PRIMERO: Probar solo con evidencias muy pequeñas
+                    // REDUCCIÓN AGRESIVA DE IMÁGENES
                     let fotoMini = null;
                     let firmaMini = null;
 
                     if (tieneFoto) {
-                        console.log('Reduciendo foto...');
-                        fotoMini = await this.reducirImagen(this.estado.fotoFactura, 0.2, 150);
+                        console.log('Tamaño original foto:', Math.round(this.estado.fotoFactura.length / 1024), 'KB');
+                        
+                        // Reducir MUCHO más agresivamente
+                        fotoMini = await this.reducirImagen(this.estado.fotoFactura, 0.1, 200); // 10% calidad, 200px max
+                        
+                        // Si aún es grande, eliminar el prefijo data:image
+                        if (fotoMini.length > 10000) {
+                            console.log('Removiendo prefijo de foto...');
+                            fotoMini = fotoMini.split(',')[1];
+                        }
+                        
                         console.log('Foto reducida a:', Math.round(fotoMini.length / 1024), 'KB');
                     }
 
                     if (tieneFirma) {
-                        console.log('Reduciendo firma...');
-                        firmaMini = await this.reducirImagen(this.estado.firmaCliente, 0.3, 100);
+                        console.log('Tamaño original firma:', Math.round(this.estado.firmaCliente.length / 1024), 'KB');
+                        
+                        // Reducir firma agresivamente
+                        firmaMini = await this.reducirImagen(this.estado.firmaCliente, 0.2, 150);
+                        
+                        if (firmaMini.length > 5000) {
+                            console.log('Removiendo prefijo de firma...');
+                            firmaMini = firmaMini.split(',')[1];
+                        }
+                        
                         console.log('Firma reducida a:', Math.round(firmaMini.length / 1024), 'KB');
                     }
 
+                    // Verificar tamaño total antes de enviar
                     const payload = {
                         accion: 'actualizar_status_con_foto',
                         idPedido: this.estado.datosPendientes.idPedido,
@@ -1111,30 +1129,46 @@
                         firmaCliente: firmaMini
                     };
 
-                    console.log('=== ENVIANDO PAYLOAD ===');
-                    console.log('Acción:', payload.accion);
-                    console.log('Tamaño total del payload:', JSON.stringify(payload).length, 'caracteres');
+                    const payloadString = JSON.stringify(payload);
+                    console.log('Tamaño total del payload:', payloadString.length, 'caracteres');
 
-                    try {
-                        this.mostrarMensaje('📸 Guardando evidencias en Drive...', 'loading');
-                        const resultado = await this.enviarDatos(payload);
-                        console.log('✅ Respuesta exitosa:', resultado);
-                        this.mostrarMensaje('✅ Entrega y evidencias registradas en Drive', 'success');
-                    } catch (error) {
-                        console.warn('⚠️ Error con Drive, guardando solo entrega:', error);
+                    // Si el payload es muy grande, intentar sin imágenes
+                    if (payloadString.length > 100000) { // ~100KB
+                        console.warn('Payload muy grande, enviando sin imágenes');
                         
-                        // Fallback: entrega sin fotos
                         const payloadSimple = {
                             accion: 'actualizar_status',
                             idPedido: this.estado.datosPendientes.idPedido,
                             nuevoStatus: 'Entregado',
                             usuario: this.estado.datosPendientes.usuario,
                             ubicacion: this.estado.datosPendientes.ubicacion,
-                            detalles: detallesEntrega + (tieneFoto ? ' - Con foto local' : '') + (tieneFirma ? ' - Con firma local' : '')
+                            detalles: detallesEntrega + ' - [Evidencias guardadas localmente]'
                         };
                         
                         await this.enviarDatos(payloadSimple);
-                        this.mostrarMensaje('✅ Entrega registrada (evidencias solo en dispositivo)', 'success');
+                        this.mostrarMensaje('✅ Entrega registrada (evidencias muy grandes para Drive)', 'success');
+                    } else {
+                        try {
+                            this.mostrarMensaje('📸 Guardando entrega y evidencias...', 'loading');
+                            const resultado = await this.enviarDatos(payload);
+                            console.log('✅ Respuesta exitosa:', resultado);
+                            this.mostrarMensaje('✅ Entrega y evidencias registradas correctamente', 'success');
+                        } catch (error) {
+                            console.error('Error con imágenes:', error);
+                            
+                            // Fallback sin imágenes
+                            const payloadSimple = {
+                                accion: 'actualizar_status',
+                                idPedido: this.estado.datosPendientes.idPedido,
+                                nuevoStatus: 'Entregado',
+                                usuario: this.estado.datosPendientes.usuario,
+                                ubicacion: this.estado.datosPendientes.ubicacion,
+                                detalles: detallesEntrega + ' - [Error al guardar evidencias]'
+                            };
+                            
+                            await this.enviarDatos(payloadSimple);
+                            this.mostrarMensaje('✅ Entrega registrada (sin evidencias)', 'success');
+                        }
                     }
                     
                     setTimeout(() => this.volverAlInicio(), 4000);
@@ -1666,14 +1700,17 @@
                     };
 
                     const url = new URL(this.SCRIPT_URL);
-                    url.searchParams.append('data', JSON.stringify(payload));
+                    const payloadString = JSON.stringify(payload);
+                    console.log('Enviando payload de', payloadString.length, 'caracteres');
+                    
+                    url.searchParams.append('data', payloadString);
                     url.searchParams.append('callback', callbackName);
 
                     console.log('=== ENVIANDO DATOS ===');
                     console.log('Acción:', payload.accion);
                     console.log('ID Pedido:', payload.idPedido);
                     console.log('Callback:', callbackName);
-                    console.log('URL length:', url.href.length);
+                    console.log('URL total length:', url.href.length);
 
                     const script = document.createElement('script');
                     script.src = url.href;
