@@ -43,14 +43,13 @@
         .status-Entregado { background-color: var(--success-color); } .status-En\.Almacén\.Devolución { background-color: var(--danger-color); }
         .status-Entrega\.Fallida { background-color: var(--danger-color); }
         .captura-container { margin: 20px 0; padding: 15px; border: 2px dashed var(--border-color); border-radius: 8px; text-align: center; }
-        .foto-preview { max-width: 100%; max-height: 400px; border-radius: 8px; margin: 10px 0; border: 2px solid var(--border-color); object-fit: contain; }
         .firma-canvas { border: 2px solid var(--border-color); border-radius: 8px; width: 100%; height: 200px; cursor: crosshair; background-color: white; }
         .firma-container { margin: 20px 0; }
         .canvas-controls { display: flex; gap: 10px; margin-top: 10px; }
         .canvas-controls button { flex: 1; margin: 0; padding: 10px; font-size: 14px; }
         #lector-container, #camara-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
         #lector-qr { width: 90%; max-width: 400px; height: 300px; border-radius: 12px; object-fit: cover; border: 3px solid white; }
-        #camara-video { width: 300px; height: 450px; border-radius: 12px; object-fit: cover; border: 3px solid white; transform: rotate(0deg); }
+        #camara-video { width: 100%; max-width: 480px; height: auto; border-radius: 12px; border: 3px solid white; }
         .scanner-header, .camara-header { color: white; text-align: center; margin-bottom: 15px; }
         .scanner-header h3, .camara-header h3 { margin: 0 0 10px 0; font-size: 1.4em; }
         .scanner-tip, .camara-tip { background-color: rgba(255,255,255,0.1); color: white; padding: 8px; border-radius: 8px; margin-bottom: 15px; text-align: center; font-size: 14px; }
@@ -60,6 +59,12 @@
         .descripcion { text-align: center; color: var(--text-light-color); margin-bottom: 20px; font-style: italic; }
         .loading-spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 10px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* */
+        #galeria-fotos { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; justify-content: center; }
+        .miniatura-container { position: relative; }
+        .miniatura { width: 80px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid var(--border-color); }
+        .btn-eliminar-foto { position: absolute; top: -5px; right: -5px; background-color: var(--danger-color); color: white; border-radius: 50%; width: 24px; height: 24px; padding: 0; font-size: 14px; line-height: 24px; text-align: center; cursor: pointer; border: 2px solid white; margin: 0; }
     </style>
 </head>
 <body>
@@ -70,7 +75,6 @@
             <button type="button" id="btn-rol-almacen" class="btn-main">📦 Módulo de Almacén</button>
             <button type="button" id="btn-rol-repartidor" class="btn-secondary">🚚 Módulo de Reparto</button>
         </div>
-
         <div id="vista-almacen-form" class="vista hidden">
             <h2>📦 Módulo de Almacén</h2>
             <p class="descripcion">Registra una nueva factura para iniciar su trazabilidad.</p>
@@ -81,7 +85,6 @@
             <button type="button" id="btn-escanear-factura" class="btn-main">📸 Escanear Código QR</button>
             <button type="button" class="btn-secondary btn-volver">← Volver al Inicio</button>
         </div>
-
         <div id="vista-repartidor-form" class="vista hidden">
             <h2>🚚 Módulo de Reparto</h2>
             <p class="descripcion">Escanea cualquier factura para ver su estado y realizar la siguiente acción.</p>
@@ -90,7 +93,6 @@
             <button type="button" id="btn-escanear-repartidor" class="btn-main">📸 Escanear Código QR</button>
             <button type="button" class="btn-secondary btn-volver">← Volver al Inicio</button>
         </div>
-
         <div id="vista-accion" class="vista hidden">
             <h2 id="accion-titulo"></h2>
             <div class="info-card">
@@ -103,17 +105,22 @@
             <div id="acciones-botones"></div>
             <button type="button" class="btn-cancel btn-volver">❌ Cancelar</button>
         </div>
-
+        
+        -->
         <div id="vista-captura-entrega" class="vista hidden">
             <h2>📸 Documentar Entrega Exitosa</h2>
             <p class="descripcion">Completa la información de la entrega</p>
+            
             <div class="captura-container">
-                <h4>📄 Factura Firmada (Opcional)</h4>
-                <img id="foto-factura-preview" class="foto-preview hidden" alt="Preview factura">
-                <button type="button" id="btn-capturar-factura" class="btn-secondary">📸 Capturar Factura</button>
+                <h4>📄 Evidencias (Factura, Cajas, Guía, etc.)</h4>
+                <p class="descripcion" style="font-size: 14px;">Toma las fotos que necesites como comprobante.</p>
+                <button type="button" id="btn-capturar-foto" class="btn-secondary">📸 Añadir Foto</button>
+                <div id="galeria-fotos"></div>
             </div>
+            
             <label for="info-adicional">📝 Información Adicional</label>
             <textarea id="info-adicional" placeholder="Ej: Recibió Juan Pérez, Guía GR-12345, Observaciones, etc."></textarea>
+            
             <div class="firma-container">
                 <label>✍️ Firma del Cliente (Opcional)</label>
                 <canvas id="firma-canvas" class="firma-canvas"></canvas>
@@ -123,6 +130,7 @@
                 </div>
                 <img id="firma-preview" class="foto-preview hidden" alt="Preview firma">
             </div>
+
             <button type="button" id="btn-confirmar-entrega-completa" class="btn-confirm">✅ Confirmar Entrega</button>
             <button type="button" class="btn-cancel btn-volver">❌ Cancelar</button>
         </div>
@@ -141,15 +149,14 @@
             <button type="button" id="btn-confirmar-fallo" class="btn-confirm">✅ Confirmar Fallo</button>
             <button type="button" class="btn-cancel btn-volver">❌ Cancelar</button>
         </div>
-
+        
         <div id="lector-container" class="hidden">
             <div class="scanner-header"><h3>📸 Escanear Código QR</h3><div class="scanner-tip">Enfoca el código QR dentro del marco</div></div>
             <video id="lector-qr" autoplay muted playsinline></video>
             <button type="button" class="close-scanner">❌ Cerrar Escáner</button>
         </div>
-
         <div id="camara-container" class="hidden">
-            <div class="camara-header"><h3 id="camara-titulo">📸 Capturar Factura</h3><div class="camara-tip">Mantén la factura en formato vertical</div></div>
+            <div class="camara-header"><h3 id="camara-titulo">📸 Capturar Evidencia</h3><div class="camara-tip">Asegura buena iluminación</div></div>
             <video id="camara-video" autoplay muted playsinline></video>
             <div class="camera-controls">
                 <button type="button" class="capture-photo">📸 Tomar Foto</button>
@@ -162,12 +169,13 @@
     <script>
         class SistemaTrazabilidad {
             constructor() {
-                // <-- PEGA AQUÍ LA NUEVA URL DE TU SCRIPT DESPLEGADO -->
                 this.SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzL_F_ry-QPBWYMfwoG6kX8ROqUSPYiLnPX05gLa6nvMPShefhxU38n3Fb6f4Yxl2vEiQ/exec";
-                
                 this.estado = {
                     modulo: null, scanner: null, cameraStream: null, datosPendientes: {},
-                    procesandoAccion: false, fotoFactura: null, firmaCliente: null,
+                    procesandoAccion: false, 
+                    // CAMBIO: Ahora es un array para múltiples fotos
+                    fotosEvidencia: [], 
+                    firmaCliente: null,
                     clienteInfo: null, pedidoInfo: null
                 };
                 this.inicializar();
@@ -178,6 +186,7 @@
                 this.inicializarFirma();
             }
 
+            // ... (función inicializarFirma sin cambios) ...
             inicializarFirma() {
                 const canvas = document.getElementById('firma-canvas');
                 const ctx = canvas.getContext('2d');
@@ -200,14 +209,12 @@
                     ctx.beginPath(); ctx.moveTo(x, y);
                 };
                 const draw = (e) => {
-                    if (!dibujando) return;
-                    e.preventDefault();
+                    if (!dibujando) return; e.preventDefault();
                     const { x, y } = getCoords(e);
                     ctx.lineTo(x, y); ctx.stroke();
                 };
                 const stopDrawing = (e) => {
-                    if (!dibujando) return;
-                    e.preventDefault(); dibujando = false;
+                    if (!dibujando) return; e.preventDefault(); dibujando = false;
                 };
                 canvas.addEventListener('mousedown', startDrawing);
                 canvas.addEventListener('mousemove', draw);
@@ -218,6 +225,7 @@
                 canvas.addEventListener('touchend', stopDrawing, { passive: false });
             }
 
+
             bindearEventos() {
                 document.getElementById('btn-rol-almacen').addEventListener('click', () => { this.estado.modulo = 'almacen'; this.cambiarVista('almacen-form'); });
                 document.getElementById('btn-rol-repartidor').addEventListener('click', () => { this.estado.modulo = 'repartidor'; this.cambiarVista('repartidor-form'); });
@@ -227,33 +235,34 @@
                 document.querySelector('.close-scanner').addEventListener('click', () => this.detenerScanner());
                 document.querySelector('.close-camara').addEventListener('click', () => this.detenerCamara());
                 document.querySelector('.capture-photo').addEventListener('click', () => this.capturarFoto());
-                document.getElementById('btn-capturar-factura').addEventListener('click', () => this.iniciarCapturarFactura());
+                
+                // CAMBIO: El botón ahora se llama btn-capturar-foto
+                document.getElementById('btn-capturar-foto').addEventListener('click', () => this.iniciarCapturarFactura());
+                
                 document.getElementById('btn-limpiar-firma').addEventListener('click', () => this.limpiarFirma());
                 document.getElementById('btn-guardar-firma').addEventListener('click', () => this.guardarFirma());
                 document.getElementById('btn-confirmar-entrega-completa').addEventListener('click', () => this.confirmarEntregaCompleta());
                 document.getElementById('btn-confirmar-fallo').addEventListener('click', () => this.confirmarFallo());
             }
 
+            // ... (cambiarVista, validarFormularioAlmacen, validarFormularioRepartidor, iniciarScanner, detenerScanner, sin cambios)...
             cambiarVista(vista) {
                 document.querySelectorAll('.vista, #lector-container, #camara-container').forEach(v => v.classList.add('hidden'));
                 const elemento = document.getElementById(`vista-${vista}`) || document.getElementById(`${vista}-container`);
                 if (elemento) elemento.classList.remove('hidden');
                 this.limpiarMensaje();
             }
-
             validarFormularioAlmacen() {
                 const pedido = document.getElementById('numero-pedido').value.trim();
                 const surtidor = document.getElementById('nombre-usuario-almacen').value.trim();
                 if (!pedido || !surtidor) { this.mostrarMensaje('Por favor, completa todos los campos', 'error'); return false; }
                 return true;
             }
-
             validarFormularioRepartidor() {
                 const repartidor = document.getElementById('nombre-repartidor').value.trim();
                 if (!repartidor) { this.mostrarMensaje('Por favor, ingresa tu nombre de repartidor', 'error'); return false; }
                 return true;
             }
-
             async iniciarScanner() {
                 try {
                     this.cambiarVista('lector');
@@ -267,7 +276,6 @@
                     this.volverAlInicio();
                 }
             }
-
             detenerScanner() {
                 if (this.estado.scanner) {
                     this.estado.scanner.stop(); this.estado.scanner.destroy(); this.estado.scanner = null;
@@ -279,34 +287,81 @@
             async iniciarCapturarFactura() {
                 try {
                     this.cambiarVista('camara');
-                    document.getElementById('camara-titulo').textContent = '📸 Capturar Factura Firmada';
+                    document.getElementById('camara-titulo').textContent = '📸 Capturar Evidencia';
                     this.mostrarMensaje('Iniciando cámara...', 'loading');
                     const videoElement = document.getElementById('camara-video');
+                    // Pedimos la resolución idealmente vertical
                     this.estado.cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1080 }, height: { ideal: 1920 } } });
                     videoElement.srcObject = this.estado.cameraStream;
+                    await videoElement.play(); // Asegurarse de que el video se esté reproduciendo
                     this.limpiarMensaje();
                 } catch (error) {
                     this.mostrarMensaje(`Error al acceder a la cámara: ${error.message}`, 'error');
                     this.cambiarVista('captura-entrega');
                 }
             }
-
+            
+            // ==================================================================
+            // === CAMBIO: Lógica de `capturarFoto` para corregir la orientación ===
+            // ==================================================================
             capturarFoto() {
                 const video = document.getElementById('camara-video');
-                if (video.videoWidth === 0) return;
+                if (!video.srcObject || video.videoWidth === 0) {
+                    this.mostrarMensaje('La cámara no está lista.', 'error');
+                    return;
+                }
+
                 const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-                const fotoBase64 = canvas.toDataURL('image/jpeg', 0.6); // Comprime a 60%
-                this.estado.fotoFactura = fotoBase64;
-                const preview = document.getElementById('foto-factura-preview');
-                preview.src = fotoBase64;
-                preview.classList.remove('hidden');
-                document.getElementById('btn-capturar-factura').textContent = '✅ Factura Capturada - Recapturar';
+                const ctx = canvas.getContext('2d');
+
+                // Si el video está en landscape (ancho > alto), lo rotamos 90 grados
+                if (video.videoWidth > video.videoHeight) {
+                    canvas.width = video.videoHeight;
+                    canvas.height = video.videoWidth;
+                    ctx.translate(video.videoHeight, 0);
+                    ctx.rotate(Math.PI / 2);
+                } else { // Si ya está en portrait, lo dejamos como está
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                }
+                
+                ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+                const fotoBase64 = canvas.toDataURL('image/jpeg', 0.6);
+
+                // CAMBIO: Añadimos la foto al array en lugar de reemplazar una variable
+                this.estado.fotosEvidencia.push(fotoBase64);
+                
+                this.renderizarGaleria();
                 this.detenerCamara();
-                this.mostrarMensaje('📄 Factura capturada', 'success');
+                this.mostrarMensaje('✅ Foto añadida', 'success');
             }
+
+            // CAMBIO: Nueva función para mostrar las miniaturas de las fotos
+            renderizarGaleria() {
+                const galeria = document.getElementById('galeria-fotos');
+                galeria.innerHTML = '';
+                this.estado.fotosEvidencia.forEach((fotoSrc, index) => {
+                    const container = document.createElement('div');
+                    container.className = 'miniatura-container';
+
+                    const img = document.createElement('img');
+                    img.src = fotoSrc;
+                    img.className = 'miniatura';
+                    
+                    const btnEliminar = document.createElement('button');
+                    btnEliminar.className = 'btn-eliminar-foto';
+                    btnEliminar.innerHTML = '&times;';
+                    btnEliminar.onclick = () => {
+                        this.estado.fotosEvidencia.splice(index, 1); // Elimina la foto del array
+                        this.renderizarGaleria(); // Vuelve a dibujar la galería
+                    };
+                    
+                    container.appendChild(img);
+                    container.appendChild(btnEliminar);
+                    galeria.appendChild(container);
+                });
+            }
+
 
             detenerCamara() {
                 if (this.estado.cameraStream) {
@@ -315,14 +370,14 @@
                 }
                 this.cambiarVista('captura-entrega');
             }
-
+            
+            // ... (limpiarFirma y guardarFirma sin cambios) ...
             limpiarFirma() {
                 const canvas = document.getElementById('firma-canvas');
                 canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
                 document.getElementById('firma-preview').classList.add('hidden');
                 this.estado.firmaCliente = null;
             }
-
             guardarFirma() {
                 const canvas = document.getElementById('firma-canvas');
                 const imageData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
@@ -337,6 +392,8 @@
                 this.mostrarMensaje('✍️ Firma guardada', 'success');
             }
 
+
+            // CAMBIO: `confirmarEntregaCompleta` ahora envía el array de fotos
             async confirmarEntregaCompleta() {
                 if (this.estado.procesandoAccion) return;
                 try {
@@ -355,7 +412,7 @@
                         usuario: this.estado.datosPendientes.usuario,
                         ubicacion: this.estado.datosPendientes.ubicacion,
                         detalles: detalles,
-                        fotoFacturaBase64: this.estado.fotoFactura,
+                        fotosEvidenciaBase64: this.estado.fotosEvidencia, // Se envía el array
                         firmaClienteBase64: this.estado.firmaCliente
                     };
                     
@@ -372,6 +429,30 @@
                 }
             }
             
+            // CAMBIO: `prepararEntregaExitosa` y `volverAlInicio` ahora limpian el array de fotos
+            prepararEntregaExitosa() {
+                this.estado.fotosEvidencia = [];
+                this.estado.firmaCliente = null;
+                this.renderizarGaleria(); // Limpia la galería en la UI
+                document.getElementById('firma-preview').classList.add('hidden');
+                document.getElementById('info-adicional').value = '';
+                this.limpiarFirma();
+                this.cambiarVista('captura-entrega');
+            }
+
+            volverAlInicio() {
+                if (this.estado.scanner) this.detenerScanner();
+                if (this.estado.cameraStream) this.detenerCamara();
+                ['numero-pedido', 'nombre-usuario-almacen', 'nombre-repartidor', 'motivo-fallo', 'info-adicional'].forEach(id => {
+                    const el = document.getElementById(id); if (el) el.value = '';
+                });
+                this.estado.fotosEvidencia = [];
+                this.renderizarGaleria();
+                this.estado = { ...this.estado, modulo: null, datosPendientes: {}, procesandoAccion: false, fotosEvidencia: [], firmaCliente: null, clienteInfo: null, pedidoInfo: null };
+                this.cambiarVista('principal');
+            }
+
+            // ... (resto de funciones sin cambios críticos) ...
             async onScanSuccess(decodedText) {
                 if (this.estado.procesandoAccion) return;
                 try {
@@ -382,8 +463,8 @@
                     const ubicacion = await this.obtenerUbicacion();
                     this.estado.datosPendientes = { idPedido: qrData.id, rfc: qrData.rfc || "SIN_RFC", ubicacion: ubicacion };
                     if (this.estado.modulo === 'almacen') {
-                        this.estado.datosPendientes.numeroPedidoOrigen = document.getElementById('numero-pedido').value.trim();
                         this.estado.datosPendientes.usuario = document.getElementById('nombre-usuario-almacen').value.trim();
+                        this.estado.datosPendientes.numeroPedidoOrigen = document.getElementById('numero-pedido').value.trim();
                         this.estado.datosPendientes.accion = 'registrar_factura';
                         const resultado = await this.enviarDatosPOST(this.estado.datosPendientes);
                         this.mostrarMensaje(resultado.mensaje, 'success');
@@ -400,193 +481,19 @@
                     this.estado.procesandoAccion = false;
                 }
             }
-
-            validarQR(texto) {
-                try {
-                    const url = new URL(texto);
-                    const id = url.searchParams.get('id');
-                    if (!id || !/^[A-Za-z0-9\-_]+$/.test(id)) throw new Error();
-                    return { id, rfc: url.searchParams.get('rr') };
-                } catch {
-                    throw new Error('Código QR no válido para este sistema');
-                }
-            }
-
-            obtenerUbicacion() {
-                return new Promise(resolve => {
-                    if (!navigator.geolocation) { resolve("Geolocalización no soportada"); return; }
-                    const timeout = setTimeout(() => resolve("Timeout de geolocalización"), 8000);
-                    navigator.geolocation.getCurrentPosition(
-                        pos => { clearTimeout(timeout); resolve(`${pos.coords.latitude},${pos.coords.longitude}`); },
-                        err => { clearTimeout(timeout); resolve(`Error de ubicación: ${err.message}`); },
-                        { timeout: 8000, enableHighAccuracy: false }
-                    );
-                });
-            }
-
-            manejarRespuestaConsulta(resultado) {
-                if (this.estado.modulo === 'repartidor') {
-                    if (resultado.status === "REGISTRADO") {
-                        this.mostrarFichaDeAccion(resultado.pedido);
-                    } else {
-                        this.mostrarMensaje("Factura no encontrada. Debe registrarse en almacén.", "error");
-                        setTimeout(() => this.volverAlInicio(), 3000);
-                    }
-                }
-            }
-
-            mostrarFichaDeAccion(pedido) {
-                document.getElementById('accion-titulo').textContent = 'Siguiente Acción';
-                document.getElementById('accion-cliente').textContent = pedido['Razón Social'] || 'Cliente N/A';
-                document.getElementById('accion-pedido-origen').textContent = pedido['Numero_Pedido_Origen'] || 'N/A';
-                document.getElementById('accion-numero-factura').textContent = pedido['ID_Pedido'] || 'N/A';
-                document.getElementById('accion-direccion').textContent = 'Dirección no disponible'; // Nota: La dirección no viene en la consulta
-                const statusActual = pedido['Status_Actual'] || 'Desconocido';
-                const statusSpan = document.getElementById('accion-status');
-                statusSpan.textContent = statusActual;
-                statusSpan.className = 'status-tag status-' + statusActual.replace(/\s+/g, '\\.');
-                this.generarBotonesAccion(statusActual);
-                this.cambiarVista('accion');
-            }
-
-            generarBotonesAccion(statusActual) {
-                const accionesDiv = document.getElementById('acciones-botones');
-                accionesDiv.innerHTML = '';
-                const acciones = {
-                    'Facturado': { texto: '🚚 Iniciar Ruta', clase: 'btn-main', accion: () => this.actualizarStatus('En Ruta') },
-                    'En Almacén (Devolución)': { texto: '🚚 Reiniciar Ruta', clase: 'btn-main', accion: () => this.actualizarStatus('En Ruta') },
-                    'En Ruta': { texto: '📍 Marcar Próxima Entrega', clase: 'btn-main', accion: () => this.actualizarStatus('En Proceso de Entrega') },
-                    'En Proceso de Entrega': [
-                        { texto: '✅ Entrega Exitosa', clase: 'btn-confirm', accion: () => this.prepararEntregaExitosa() },
-                        { texto: '❌ Entrega Fallida', clase: 'btn-cancel', accion: () => this.cambiarVista('repartidor-fallo') }
-                    ]
-                };
-                const accion = acciones[statusActual];
-                if (accion) {
-                    (Array.isArray(accion) ? accion : [accion]).forEach(a => {
-                        const btn = document.createElement('button');
-                        btn.className = a.clase; btn.textContent = a.texto;
-                        btn.addEventListener('click', a.accion);
-                        accionesDiv.appendChild(btn);
-                    });
-                } else {
-                    accionesDiv.innerHTML = `<p style="text-align: center; color: #666;">Este pedido ya fue procesado (${statusActual}).</p>`;
-                }
-            }
-
-            prepararEntregaExitosa() {
-                this.estado.fotoFactura = null; this.estado.firmaCliente = null;
-                document.getElementById('foto-factura-preview').classList.add('hidden');
-                document.getElementById('firma-preview').classList.add('hidden');
-                document.getElementById('info-adicional').value = '';
-                document.getElementById('btn-capturar-factura').textContent = '📸 Capturar Factura (Opcional)';
-                this.limpiarFirma();
-                this.cambiarVista('captura-entrega');
-            }
-
-            async actualizarStatus(nuevoStatus, detalles = "") {
-                if (this.estado.procesandoAccion) return;
-                try {
-                    this.estado.procesandoAccion = true;
-                    this.mostrarMensaje(`Actualizando estado a: ${nuevoStatus}...`, 'loading');
-                    const payload = {
-                        accion: 'actualizar_status', idPedido: this.estado.datosPendientes.idPedido,
-                        nuevoStatus: nuevoStatus, usuario: this.estado.datosPendientes.usuario,
-                        ubicacion: this.estado.datosPendientes.ubicacion, detalles: detalles
-                    };
-                    const resultado = await this.enviarDatosPOST(payload);
-                    this.mostrarMensaje(resultado.mensaje, 'success');
-                    setTimeout(() => this.volverAlInicio(), 4000);
-                } catch (error) {
-                    this.mostrarMensaje(`Error al actualizar: ${error.message}`, 'error');
-                } finally {
-                    this.estado.procesandoAccion = false;
-                }
-            }
-
-            confirmarFallo() {
-                const motivo = document.getElementById('motivo-fallo').value;
-                if (!motivo) { this.mostrarMensaje('Por favor, selecciona un motivo', 'error'); return; }
-                this.actualizarStatus('Entrega Fallida', motivo);
-            }
-
-            async enviarDatosPOST(payload) {
-                try {
-                    const response = await fetch(this.SCRIPT_URL, {
-                        method: 'POST',
-                        mode: 'no-cors', // Apps Script simple POST endpoints work best with no-cors
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Required header
-                        body: JSON.stringify(payload)
-                    });
-                    // Con 'no-cors' no podemos leer la respuesta, pero si no hay error, asumimos éxito.
-                    // Para este flujo, se mostrará un mensaje genérico de éxito si la promesa se resuelve.
-                    return { mensaje: 'Acción procesada correctamente.' };
-                } catch (error) {
-                    console.error('Error en fetch POST:', error);
-                    throw new Error('Error de conexión al enviar los datos.');
-                }
-            }
-            
-            async enviarDatos(payload) {
-                return new Promise((resolve, reject) => {
-                    const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
-                    const timeoutId = setTimeout(() => {
-                        delete window[callbackName];
-                        script.remove();
-                        reject(new Error('Timeout: El servidor tardó demasiado en responder'));
-                    }, 20000);
-
-                    window[callbackName] = (response) => {
-                        clearTimeout(timeoutId);
-                        delete window[callbackName];
-                        script.remove();
-                        if (response.status === 'success') {
-                            resolve(response.data);
-                        } else {
-                            reject(new Error(response.message || 'Error desconocido del servidor'));
-                        }
-                    };
-
-                    const url = new URL(this.SCRIPT_URL);
-                    url.searchParams.append('data', JSON.stringify(payload));
-                    url.searchParams.append('callback', callbackName);
-
-                    const script = document.createElement('script');
-                    script.src = url.href;
-                    script.onerror = () => reject(new Error('Error de red al contactar el servidor.'));
-                    document.body.appendChild(script);
-                });
-            }
-
-            mostrarMensaje(mensaje, tipo = '') {
-                const statusDiv = document.getElementById('status-message');
-                statusDiv.textContent = mensaje;
-                statusDiv.className = `status-message status-${tipo}`;
-                statusDiv.classList.remove('hidden');
-                if (tipo === 'success' || tipo === 'error') {
-                    setTimeout(() => this.limpiarMensaje(), 5000);
-                }
-            }
-
-            limpiarMensaje() {
-                const statusDiv = document.getElementById('status-message');
-                statusDiv.classList.add('hidden');
-            }
-
-            volverAlInicio() {
-                if (this.estado.scanner) this.detenerScanner();
-                if (this.estado.cameraStream) this.detenerCamara();
-                ['numero-pedido', 'nombre-usuario-almacen', 'nombre-repartidor', 'motivo-fallo', 'info-adicional'].forEach(id => {
-                    const el = document.getElementById(id); if (el) el.value = '';
-                });
-                this.estado = { ...this.estado, modulo: null, datosPendientes: {}, procesandoAccion: false, fotoFactura: null, firmaCliente: null, clienteInfo: null, pedidoInfo: null };
-                this.cambiarVista('principal');
-            }
+            validarQR(texto) { try { const url = new URL(texto); const id = url.searchParams.get('id'); if (!id || !/^[A-Za-z0-9\-_]+$/.test(id)) throw new Error(); return { id, rfc: url.searchParams.get('rr') }; } catch { throw new Error('Código QR no válido'); } }
+            obtenerUbicacion() { return new Promise(resolve => { if (!navigator.geolocation) { resolve("Geolocalización no soportada"); return; } const timeout = setTimeout(() => resolve("Timeout de geolocalización"), 8000); navigator.geolocation.getCurrentPosition( pos => { clearTimeout(timeout); resolve(`${pos.coords.latitude},${pos.coords.longitude}`); }, err => { clearTimeout(timeout); resolve(`Error: ${err.message}`); }, { timeout: 8000, enableHighAccuracy: false } ); }); }
+            manejarRespuestaConsulta(resultado) { if (this.estado.modulo === 'repartidor') { if (resultado.status === "REGISTRADO") { this.mostrarFichaDeAccion(resultado.pedido); } else { this.mostrarMensaje("Factura no encontrada. Debe registrarse en almacén.", "error"); setTimeout(() => this.volverAlInicio(), 3000); } } }
+            mostrarFichaDeAccion(pedido) { document.getElementById('accion-titulo').textContent = 'Siguiente Acción'; document.getElementById('accion-cliente').textContent = pedido['Razón_Social'] || 'Cliente N/A'; document.getElementById('accion-pedido-origen').textContent = pedido['Numero_Pedido_Origen'] || 'N/A'; document.getElementById('accion-numero-factura').textContent = pedido['ID_Pedido'] || 'N/A'; document.getElementById('accion-direccion').textContent = 'Dirección no disponible'; const statusActual = pedido['Status_Actual'] || 'Desconocido'; const statusSpan = document.getElementById('accion-status'); statusSpan.textContent = statusActual; statusSpan.className = 'status-tag status-' + statusActual.replace(/\s+/g, '\\.'); this.generarBotonesAccion(statusActual); this.cambiarVista('accion'); }
+            generarBotonesAccion(statusActual) { const accionesDiv = document.getElementById('acciones-botones'); accionesDiv.innerHTML = ''; const acciones = { 'Facturado': { texto: '🚚 Iniciar Ruta', clase: 'btn-main', accion: () => this.actualizarStatus('En Ruta') }, 'En Almacén (Devolución)': { texto: '🚚 Reiniciar Ruta', clase: 'btn-main', accion: () => this.actualizarStatus('En Ruta') }, 'En Ruta': { texto: '📍 Marcar Próxima Entrega', clase: 'btn-main', accion: () => this.actualizarStatus('En Proceso de Entrega') }, 'En Proceso de Entrega': [ { texto: '✅ Entrega Exitosa', clase: 'btn-confirm', accion: () => this.prepararEntregaExitosa() }, { texto: '❌ Entrega Fallida', clase: 'btn-cancel', accion: () => this.cambiarVista('repartidor-fallo') } ] }; const accion = acciones[statusActual]; if (accion) { (Array.isArray(accion) ? accion : [accion]).forEach(a => { const btn = document.createElement('button'); btn.className = a.clase; btn.textContent = a.texto; btn.addEventListener('click', a.accion); accionesDiv.appendChild(btn); }); } else { accionesDiv.innerHTML = `<p style="text-align: center; color: #666;">Este pedido ya fue procesado (${statusActual}).</p>`; } }
+            async actualizarStatus(nuevoStatus, detalles = "") { if (this.estado.procesandoAccion) return; try { this.estado.procesandoAccion = true; this.mostrarMensaje(`Actualizando a: ${nuevoStatus}...`, 'loading'); const payload = { accion: 'actualizar_status', idPedido: this.estado.datosPendientes.idPedido, nuevoStatus: nuevoStatus, usuario: this.estado.datosPendientes.usuario, ubicacion: this.estado.datosPendientes.ubicacion, detalles: detalles }; const resultado = await this.enviarDatosPOST(payload); this.mostrarMensaje(resultado.mensaje, 'success'); setTimeout(() => this.volverAlInicio(), 4000); } catch (error) { this.mostrarMensaje(`Error: ${error.message}`, 'error'); } finally { this.estado.procesandoAccion = false; } }
+            confirmarFallo() { const motivo = document.getElementById('motivo-fallo').value; if (!motivo) { this.mostrarMensaje('Selecciona un motivo', 'error'); return; } this.actualizarStatus('Entrega Fallida', motivo); }
+            async enviarDatosPOST(payload) { try { await fetch(this.SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) }); return { mensaje: 'Acción procesada.' }; } catch (error) { throw new Error('Error de conexión.'); } }
+            async enviarDatos(payload) { return new Promise((resolve, reject) => { const cb = 'c' + Date.now(); const t = setTimeout(() => { delete window[cb]; s.remove(); reject(new Error('Timeout')); }, 20000); window[cb] = (r) => { clearTimeout(t); delete window[cb]; s.remove(); if (r.status === 'success') { resolve(r.data); } else { reject(new Error(r.message)); } }; const u = new URL(this.SCRIPT_URL); u.searchParams.append('data', JSON.stringify(payload)); u.searchParams.append('callback', cb); const s = document.createElement('script'); s.src = u.href; s.onerror = () => reject(new Error('Error de red.')); document.body.appendChild(s); }); }
+            mostrarMensaje(mensaje, tipo = '') { const s = document.getElementById('status-message'); s.textContent = mensaje; s.className = `status-message status-${tipo}`; s.classList.remove('hidden'); if (tipo === 'success' || tipo === 'error') { setTimeout(() => this.limpiarMensaje(), 5000); } }
+            limpiarMensaje() { document.getElementById('status-message').classList.add('hidden'); }
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            window.sistemaTrazabilidad = new SistemaTrazabilidad();
-        });
+        document.addEventListener('DOMContentLoaded', () => { window.sistemaTrazabilidad = new SistemaTrazabilidad(); });
     </script>
 </body>
 </html>
