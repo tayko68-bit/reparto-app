@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trazabilidad - Almacén</title>
+    <style>:root{--main-bg-color:#f4f7f6;--card-bg-color:#fff;--primary-color:#007bff;--secondary-color:#6c757d;--success-color:#28a745;--danger-color:#dc3545;--text-color:#333;--border-color:#e0e0e0}*{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;margin:0;padding:10px;background-color:var(--main-bg-color);color:var(--text-color);line-height:1.6}.container{max-width:600px;margin:0 auto}.vista{background:var(--card-bg-color);padding:20px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.1);margin-bottom:20px}.hidden{display:none!important}h1,h2{text-align:center;border-bottom:2px solid var(--border-color);padding-bottom:15px;margin-top:0;color:var(--text-color)}button{display:block;width:100%;padding:16px;font-size:18px;font-weight:700;color:#fff;border:none;border-radius:8px;cursor:pointer;margin-top:15px;transition:all .3s ease;text-align:center}button:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,.15)}button:disabled{opacity:.6;cursor:not-allowed;transform:none}.btn-main{background-color:var(--primary-color)}label{display:block;margin-bottom:5px;font-weight:700;color:var(--text-color)}input{width:100%;padding:14px;margin-bottom:15px;border-radius:8px;border:2px solid var(--border-color);font-size:16px;background-color:#fcfcfc;transition:border-color .3s ease;font-family:inherit}input:focus{outline:0;border-color:var(--primary-color)}.status-message{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:3000;max-width:90%;width:auto;min-width:320px;text-align:center;font-weight:700;padding:20px 25px;border-radius:12px;box-shadow:0 8px 25px rgba(0,0,0,.3);transition:all .3s ease;backdrop-filter:blur(5px)}.status-success{background-color:rgba(212,237,218,.95);color:#155724;border:2px solid #c3e6cb}.status-error{background-color:rgba(248,215,218,.95);color:#721c24;border:2px solid #f5c6cb}.status-loading{background-color:rgba(209,236,218,.95);color:#0c5460;border:2px solid #bee5eb}#lector-container{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.9);z-index:1000;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:20px}#lector-qr{width:100%;max-width:480px;height:auto;border-radius:12px;border:3px solid #fff}.scanner-header{color:#fff;text-align:center;margin-bottom:15px}.scanner-header h3{margin:0 0 10px;font-size:1.4em}.close-scanner{background-color:var(--danger-color);color:#fff;border:none;padding:12px 24px;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;margin:8px;min-width:120px}</style>
+</head>
+<body>
+    <div class="container">
+        <div id="vista-almacen-form" class="vista">
+            <h2>📦 Módulo de Almacén</h2>
+            <label for="numero-pedido">Nº Pedido/Factura Original:</label>
+            <input type="text" id="numero-pedido" required>
+            <label for="nombre-usuario-almacen">Tu Nombre (Surtidor):</label>
+            <input type="text" id="nombre-usuario-almacen" required>
+            <button type="button" id="btn-escanear-factura" class="btn-main">📸 Escanear QR</button>
+        </div>
+        <div id="lector-container" class="hidden">
+            <div class="scanner-header"><h3>📸 Escanear QR</h3></div>
+            <video id="lector-qr" autoplay muted playsinline></video>
+            <button type="button" class="close-scanner">❌ Cerrar</button>
+        </div>
+    </div>
+    <div class="status-message hidden" id="status-message"></div>
+    <script src="https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner.umd.min.js"></script>
+    <script>
+        class SistemaAlmacen {
+            constructor() {
+                this.SCRIPT_URL = "https.script.google.com/macros/s/AKfycbzL_F_ry-QPBWYMfwoG6kX8ROqUSPYiLnPX05gLa6nvMPShefhxU38n3Fb6f4Yxl2vEiQ/exec";
+                this.estado = { scanner: null, procesandoAccion: false };
+                this.inicializar();
+            }
+            inicializar() { this.bindearEventos(); }
+            bindearEventos() {
+                document.getElementById('btn-escanear-factura').addEventListener('click', () => this.validarFormulario() && this.iniciarScanner());
+                document.querySelector('.close-scanner').addEventListener('click', () => this.detenerScanner());
+            }
+            validarFormulario() {
+                const pedido = document.getElementById('numero-pedido').value.trim();
+                const surtidor = document.getElementById('nombre-usuario-almacen').value.trim();
+                if (!pedido || !surtidor) { this.mostrarMensaje('Completa todos los campos', 'error'); return false; }
+                return true;
+            }
+            async iniciarScanner() {
+                try {
+                    document.getElementById('vista-almacen-form').classList.add('hidden');
+                    document.getElementById('lector-container').classList.remove('hidden');
+                    this.mostrarMensaje('Iniciando cámara...', 'loading');
+                    const video = document.getElementById('lector-qr');
+                    this.estado.scanner = new QrScanner(video, result => this.onScanSuccess(result.data), { preferredCamera: 'environment', highlightScanRegion: true });
+                    await this.estado.scanner.start();
+                    this.limpiarMensaje();
+                } catch (error) { this.mostrarMensaje(`Error cámara: ${error.message}`, 'error'); }
+            }
+            detenerScanner() {
+                if (this.estado.scanner) { this.estado.scanner.stop(); this.estado.scanner.destroy(); this.estado.scanner = null; }
+                document.getElementById('lector-container').classList.add('hidden');
+                document.getElementById('vista-almacen-form').classList.remove('hidden');
+            }
+            async onScanSuccess(decodedText) {
+                if (this.estado.procesandoAccion) return;
+                try {
+                    this.estado.procesandoAccion = true;
+                    this.detenerScanner();
+                    this.mostrarMensaje('Verificando factura...', 'loading');
+                    const qrData = this.validarQR(decodedText);
+                    const chequeo = await this.enviarDatosGET({ accion: 'consultar_factura', idPedido: qrData.id });
+                    if (chequeo.status === 'REGISTRADO') {
+                        this.mostrarMensaje('⚠️ Esta factura ya fue registrada.', 'error');
+                    } else {
+                        this.mostrarMensaje('Factura nueva, registrando...', 'loading');
+                        const payload = {
+                            accion: 'registrar_factura',
+                            idPedido: qrData.id,
+                            rfc: qrData.rfc || "SIN_RFC",
+                            numeroPedidoOrigen: document.getElementById('numero-pedido').value.trim(),
+                            usuario: document.getElementById('nombre-usuario-almacen').value.trim()
+                        };
+                        await this.enviarDatosPOST(payload);
+                        this.mostrarMensaje('✅ Factura registrada con éxito.', 'success');
+                    }
+                } catch (error) {
+                    this.mostrarMensaje(`Error: ${error.message}`, 'error');
+                } finally {
+                    setTimeout(() => {
+                        this.estado.procesandoAccion = false;
+                        document.getElementById('numero-pedido').value = '';
+                        this.limpiarMensaje();
+                        document.getElementById('vista-almacen-form').classList.remove('hidden');
+                    }, 4000);
+                }
+            }
+            validarQR(texto) { try { const url = new URL(texto); const id = url.searchParams.get('id'); if (!id) throw new Error(); return { id, rfc: url.searchParams.get('rr') }; } catch { throw new Error('QR no válido'); } }
+            async enviarDatosPOST(payload) { try { await fetch(this.SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) }); } catch (e) { throw new Error('Error de conexión.'); } }
+            async enviarDatosGET(payload) { return new Promise((resolve, reject) => { const cb = 'c' + Date.now(); const s = document.createElement('script'); const t = setTimeout(() => { delete window[cb]; if (s.parentNode) s.remove(); reject(new Error('Timeout')); }, 20000); window[cb] = (r) => { clearTimeout(t); delete window[cb]; if (s.parentNode) s.remove(); if (r.status === 'success') { resolve(r.data); } else { reject(new Error(r.message)); } }; const u = new URL(this.SCRIPT_URL); u.searchParams.append('data', JSON.stringify(payload)); u.searchParams.append('callback', cb); s.src = u.href; s.onerror = () => { clearTimeout(t); delete window[cb]; if (s.parentNode) s.remove(); reject(new Error('Error de red.')); }; document.body.appendChild(s); }); }
+            mostrarMensaje(msg, tipo) { const div = document.getElementById('status-message'); div.textContent = msg; div.className = `status-message status-${tipo}`; div.classList.remove('hidden'); }
+            limpiarMensaje() { document.getElementById('status-message').classList.add('hidden'); }
+        }
+        document.addEventListener('DOMContentLoaded', () => { new SistemaAlmacen(); });
+    </script>
+</body>
+</html>
