@@ -158,7 +158,8 @@
     <script>
         class SistemaTrazabilidad {
             constructor() {
-                this.SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzL_F_ry-QPBWYMfwoG6kX8ROqUSPYiLnPX05gLa6nvMPShefhxU38n3Fb6f4Yxl2vEiQ/exec"; // Reemplaza si cambia
+                // Asegúrate de que esta URL sea la de tu última implementación
+                this.SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzL_F_ry-QPBWYMfwoG6kX8ROqUSPYiLnPX05gLa6nvMPShefhxU38n3Fb6f4Yxl2vEiQ/exec";
                 
                 this.estado = {
                     modulo: null,
@@ -179,6 +180,46 @@
                 this.inicializarFirma();
             }
 
+            // ==========================================
+            // VINCULACIÓN DE BOTONES (CORREGIDO)
+            // ==========================================
+            bindearEventos() {
+                try {
+                    // Mapeo de selectores a funciones para hacer el código más limpio
+                    const bindings = {
+                        '#btn-rol-almacen': () => { this.estado.modulo = 'almacen'; this.cambiarVista('almacen-form'); },
+                        '#btn-rol-repartidor': () => { this.estado.modulo = 'repartidor'; this.cambiarVista('repartidor-form'); },
+                        '#btn-escanear-factura': () => this.validarFormularioAlmacen() && this.iniciarScanner(),
+                        '#btn-escanear-repartidor': () => this.validarFormularioRepartidor() && this.iniciarScanner(),
+                        '.close-scanner': () => this.detenerScanner(),
+                        '.close-camara': () => this.detenerCamara(),
+                        '.capture-photo': () => this.capturarFoto(),
+                        '#btn-capturar-foto': () => this.iniciarCapturarFactura(),
+                        '#btn-limpiar-firma': () => this.limpiarFirma(),
+                        '#btn-confirmar-entrega-completa': () => this.confirmarEntregaCompleta(),
+                        '#btn-confirmar-fallo': () => this.confirmarFallo()
+                    };
+
+                    for (const selector in bindings) {
+                        const element = document.querySelector(selector);
+                        if (element) {
+                            element.addEventListener('click', bindings[selector]);
+                        } else {
+                            console.warn(`Elemento no encontrado para el selector: ${selector}`);
+                        }
+                    }
+
+                    // Vincular todos los botones de "volver"
+                    document.querySelectorAll('.btn-volver').forEach(btn => {
+                        btn.addEventListener('click', () => this.volverAlInicio());
+                    });
+
+                } catch (error) {
+                    console.error("Error crítico al vincular los botones:", error);
+                    alert("Error crítico al iniciar la aplicación: " + error.message);
+                }
+            }
+            
             inicializarFirma() {
                 const canvas = document.getElementById('firma-canvas');
                 const ctx = canvas.getContext('2d');
@@ -227,21 +268,6 @@
                 canvas.addEventListener('touchstart', startDrawing, { passive: false });
                 canvas.addEventListener('touchmove', draw, { passive: false });
                 canvas.addEventListener('touchend', stopDrawing, { passive: false });
-            }
-
-            bindearEventos() {
-                document.getElementById('btn-rol-almacen').addEventListener('click', () => { this.estado.modulo = 'almacen'; this.cambiarVista('almacen-form'); });
-                document.getElementById('btn-rol-repartidor').addEventListener('click', () => { this.estado.modulo = 'repartidor'; this.cambiarVista('repartidor-form'); });
-                document.getElementById('btn-escanear-factura').addEventListener('click', () => this.validarFormularioAlmacen() && this.iniciarScanner());
-                document.getElementById('btn-escanear-repartidor').addEventListener('click', () => this.validarFormularioRepartidor() && this.iniciarScanner());
-                document.querySelectorAll('.btn-volver').forEach(btn => btn.addEventListener('click', () => this.volverAlInicio()));
-                document.querySelector('.close-scanner').addEventListener('click', () => this.detenerScanner());
-                document.querySelector('.close-camara').addEventListener('click', () => this.detenerCamara());
-                document.querySelector('.capture-photo').addEventListener('click', () => this.capturarFoto());
-                document.getElementById('btn-capturar-foto').addEventListener('click', () => this.iniciarCapturarFactura());
-                document.getElementById('btn-limpiar-firma').addEventListener('click', () => this.limpiarFirma());
-                document.getElementById('btn-confirmar-entrega-completa').addEventListener('click', () => this.confirmarEntregaCompleta());
-                document.getElementById('btn-confirmar-fallo').addEventListener('click', () => this.confirmarFallo());
             }
 
             cambiarVista(vista) {
@@ -304,7 +330,6 @@
                     this.mostrarMensaje('Iniciando cámara...', 'loading');
                     const videoElement = document.getElementById('camara-video');
                     
-                    // CAMBIO CLAVE: Petición de cámara más flexible para mayor compatibilidad
                     const constraints = { 
                         video: { 
                             facingMode: 'environment'
