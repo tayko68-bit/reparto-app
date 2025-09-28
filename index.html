@@ -22,7 +22,6 @@
         button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         .btn-main { background-color: var(--primary-color); } .btn-secondary { background-color: var(--secondary-color); }
         .btn-confirm { background-color: var(--success-color); } .btn-cancel { background-color: var(--danger-color); }
-        .btn-warning { background-color: var(--warning-color); color: #333; }
         label { display: block; margin-bottom: 5px; font-weight: bold; color: var(--text-color); }
         input, select, textarea { width: 100%; padding: 14px; margin-bottom: 15px; border-radius: 8px; border: 2px solid var(--border-color); font-size: 16px; background-color: #fcfcfc; transition: border-color 0.3s ease; font-family: inherit; }
         input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary-color); }
@@ -36,12 +35,12 @@
         .info-card p { margin: 10px 0; font-size: 16px; padding-bottom: 8px; border-bottom: 1px solid #eee; word-wrap: break-word; }
         .info-card p:last-child { border-bottom: none; }
         .info-card p strong { color: var(--text-color); display: inline-block; min-width: 140px; vertical-align: top; }
-        .direccion-completa { display: inline-block; max-width: calc(100% - 150px); vertical-align: top; }
         .status-tag { padding: 6px 12px; border-radius: 15px; color: white; font-weight: bold; display: inline-block; font-size: 14px; }
-        .status-Sin\.Facturar { background-color: #6c757d; } .status-Facturado { background-color: var(--warning-color); color: #333; }
-        .status-En\.Ruta { background-color: var(--info-color); } .status-En\.Proceso\.de\.Entrega { background-color: var(--orange-color); }
-        .status-Entregado { background-color: var(--success-color); } .status-En\.Almacén\.Devolución { background-color: var(--danger-color); }
-        .status-Entrega\.Fallida { background-color: var(--danger-color); }
+        .status-Facturado { background-color: var(--warning-color); color: #333; }
+        .status-En\.Ruta { background-color: var(--info-color); }
+        .status-En\.Proceso\.de\.Entrega { background-color: var(--orange-color); }
+        .status-Entregado { background-color: var(--success-color); }
+        .status-Entrega\.Fallida, .status-En\.Almacén\.Devolución { background-color: var(--danger-color); }
         .captura-container { margin: 20px 0; padding: 15px; border: 2px dashed var(--border-color); border-radius: 8px; text-align: center; }
         .firma-canvas { border: 2px solid var(--border-color); border-radius: 8px; width: 100%; height: 200px; cursor: crosshair; background-color: white; }
         .firma-container { margin: 20px 0; }
@@ -52,7 +51,6 @@
         #camara-video { width: 100%; max-width: 480px; height: auto; border-radius: 12px; border: 3px solid white; }
         .scanner-header, .camara-header { color: white; text-align: center; margin-bottom: 15px; }
         .scanner-header h3, .camara-header h3 { margin: 0 0 10px 0; font-size: 1.4em; }
-        .scanner-tip, .camara-tip { background-color: rgba(255,255,255,0.1); color: white; padding: 8px; border-radius: 8px; margin-bottom: 15px; text-align: center; font-size: 14px; }
         .close-scanner, .close-camara, .capture-photo { background-color: var(--danger-color); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin: 8px; min-width: 120px; }
         .capture-photo { background-color: var(--success-color); }
         .camera-controls { display: flex; gap: 15px; margin-top: 15px; }
@@ -158,7 +156,6 @@
     <script>
         class SistemaTrazabilidad {
             constructor() {
-                // URL ACTUALIZADA CON LA QUE PROPORCIONASTE
                 this.SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzL_F_ry-QPBWYMfwoG6kX8ROqUSPYiLnPX05gLa6nvMPShefhxU38n3Fb6f4Yxl2vEiQ/exec";
                 
                 this.estado = {
@@ -181,6 +178,8 @@
             }
 
             bindearEventos() {
+                // Función de vinculación de botones corregida y segura.
+                // Esta versión asegura que si un botón no existe, no detiene la ejecución de los demás.
                 const bindings = {
                     '#btn-rol-almacen': () => { this.estado.modulo = 'almacen'; this.cambiarVista('almacen-form'); },
                     '#btn-rol-repartidor': () => { this.estado.modulo = 'repartidor'; this.cambiarVista('repartidor-form'); },
@@ -199,6 +198,8 @@
                     const element = document.querySelector(selector);
                     if (element) {
                         element.addEventListener('click', bindings[selector]);
+                    } else {
+                        console.warn(`Elemento no encontrado para el selector: ${selector}`);
                     }
                 }
 
@@ -313,16 +314,9 @@
             async iniciarCapturarFactura() {
                 try {
                     this.cambiarVista('camara');
-                    document.getElementById('camara-titulo').textContent = '📸 Capturar Evidencia';
                     this.mostrarMensaje('Iniciando cámara...', 'loading');
                     const videoElement = document.getElementById('camara-video');
-                    
-                    const constraints = { 
-                        video: { 
-                            facingMode: 'environment'
-                        } 
-                    };
-
+                    const constraints = { video: { facingMode: 'environment' } };
                     this.estado.cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
                     videoElement.srcObject = this.estado.cameraStream;
                     await videoElement.play();
@@ -339,10 +333,8 @@
                     this.mostrarMensaje('La cámara no está lista.', 'error');
                     return;
                 }
-
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
-
                 if (video.videoWidth > video.videoHeight) {
                     canvas.width = video.videoHeight;
                     canvas.height = video.videoWidth;
@@ -352,10 +344,8 @@
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
                 }
-                
                 ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
                 const fotoBase64 = canvas.toDataURL('image/jpeg', 0.6);
-
                 this.estado.fotosEvidencia.push(fotoBase64);
                 this.renderizarGaleria();
                 this.detenerCamara();
@@ -415,9 +405,7 @@
                     const btn = document.getElementById('btn-confirmar-entrega-completa');
                     btn.disabled = true;
                     btn.innerHTML = '<span class="loading-spinner"></span>Procesando...';
-
-                    this.guardarFirma();
-
+                    this.guardarFirma(); // Captura automática de la firma
                     const payload = {
                         accion: 'registrar_entrega_con_evidencias',
                         idPedido: this.estado.datosPendientes.idPedido,
@@ -427,11 +415,9 @@
                         fotosEvidenciaBase64: this.estado.fotosEvidencia,
                         firmaClienteBase64: this.estado.firmaCliente
                     };
-                    
                     await this.enviarDatosPOST(payload);
                     this.mostrarMensaje('✅ Entrega registrada y notificaciones enviadas.', 'success');
                     setTimeout(() => this.volverAlInicio(), 3000);
-
                 } catch (error) {
                     this.mostrarMensaje(`Error: ${error.message}`, 'error');
                 } finally {
@@ -453,12 +439,10 @@
                     const qrData = this.validarQR(decodedText);
                     const ubicacion = await this.obtenerUbicacion();
                     this.estado.datosPendientes = { idPedido: qrData.id, rfc: qrData.rfc || "SIN_RFC", ubicacion: ubicacion };
-                    
                     if (this.estado.modulo === 'almacen') {
                         this.estado.datosPendientes.usuario = document.getElementById('nombre-usuario-almacen').value.trim();
                         this.estado.datosPendientes.numeroPedidoOrigen = document.getElementById('numero-pedido').value.trim();
-                        this.estado.datosPendientes.accion = 'registrar_factura';
-                        const resultado = await this.enviarDatosPOST(this.estado.datosPendientes);
+                        const resultado = await this.enviarDatosPOST({ accion: 'registrar_factura', ...this.estado.datosPendientes });
                         this.mostrarMensaje(resultado.mensaje, 'success');
                         setTimeout(() => this.volverAlInicio(), 4000);
                     } else {
@@ -481,16 +465,13 @@
                     if (!id || !/^[A-Za-z0-9\-_]+$/.test(id)) throw new Error();
                     return { id, rfc: url.searchParams.get('rr') };
                 } catch {
-                    throw new Error('Código QR no válido para este sistema');
+                    throw new Error('Código QR no válido');
                 }
             }
 
             obtenerUbicacion() {
                 return new Promise(resolve => {
-                    if (!navigator.geolocation) {
-                        resolve("Geolocalización no soportada");
-                        return;
-                    }
+                    if (!navigator.geolocation) { resolve("Geolocalización no soportada"); return; }
                     const timeout = setTimeout(() => resolve("Timeout de geolocalización"), 8000);
                     navigator.geolocation.getCurrentPosition(
                         pos => { clearTimeout(timeout); resolve(`${pos.coords.latitude},${pos.coords.longitude}`); },
@@ -504,7 +485,7 @@
                 if (resultado.status === "REGISTRADO") {
                     this.mostrarFichaDeAccion(resultado.pedido);
                 } else {
-                    this.mostrarMensaje("Factura no encontrada. Debe registrarse en almacén.", "error");
+                    this.mostrarMensaje("Factura no encontrada.", "error");
                     setTimeout(() => this.volverAlInicio(), 3000);
                 }
             }
@@ -523,8 +504,8 @@
             }
 
             generarBotonesAccion(statusActual) {
-                const accionesDiv = document.getElementById('acciones-botones');
-                accionesDiv.innerHTML = '';
+                const div = document.getElementById('acciones-botones');
+                div.innerHTML = '';
                 const acciones = {
                     'Facturado': { texto: '🚚 Iniciar Ruta', clase: 'btn-main', accion: () => this.actualizarStatus('En Ruta') },
                     'En Almacén (Devolución)': { texto: '🚚 Reiniciar Ruta', clase: 'btn-main', accion: () => this.actualizarStatus('En Ruta') },
@@ -538,13 +519,12 @@
                 if (accion) {
                     (Array.isArray(accion) ? accion : [accion]).forEach(a => {
                         const btn = document.createElement('button');
-                        btn.className = a.clase;
-                        btn.textContent = a.texto;
+                        btn.className = a.clase; btn.textContent = a.texto;
                         btn.addEventListener('click', a.accion);
-                        accionesDiv.appendChild(btn);
+                        div.appendChild(btn);
                     });
                 } else {
-                    accionesDiv.innerHTML = `<p style="text-align: center; color: #666;">Este pedido ya fue procesado (${statusActual}).</p>`;
+                    div.innerHTML = `<p style="text-align: center; color: #666;">Este pedido ya fue procesado (${statusActual}).</p>`;
                 }
             }
 
@@ -561,7 +541,7 @@
                 if (this.estado.procesandoAccion) return;
                 try {
                     this.estado.procesandoAccion = true;
-                    this.mostrarMensaje(`Actualizando estado a: ${nuevoStatus}...`, 'loading');
+                    this.mostrarMensaje(`Actualizando a: ${nuevoStatus}...`, 'loading');
                     const payload = {
                         accion: 'actualizar_status',
                         idPedido: this.estado.datosPendientes.idPedido,
@@ -574,7 +554,7 @@
                     this.mostrarMensaje(resultado.mensaje, 'success');
                     setTimeout(() => this.volverAlInicio(), 4000);
                 } catch (error) {
-                    this.mostrarMensaje(`Error al actualizar: ${error.message}`, 'error');
+                    this.mostrarMensaje(`Error: ${error.message}`, 'error');
                 } finally {
                     this.estado.procesandoAccion = false;
                 }
@@ -582,30 +562,31 @@
 
             confirmarFallo() {
                 const motivo = document.getElementById('motivo-fallo').value;
-                if (!motivo) {
-                    this.mostrarMensaje('Por favor, selecciona un motivo', 'error');
-                    return;
-                }
+                if (!motivo) { this.mostrarMensaje('Selecciona un motivo', 'error'); return; }
                 this.actualizarStatus('Entrega Fallida', motivo);
             }
 
             async enviarDatosPOST(payload) {
                 try {
-                    await fetch(this.SCRIPT_URL, {
+                    const response = await fetch(this.SCRIPT_URL, {
                         method: 'POST',
                         mode: 'no-cors',
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify(payload)
                     });
-                    return { mensaje: 'Acción procesada correctamente.' };
+                    // Aunque no podemos leer la respuesta con no-cors, el hecho de que no haya un error de red es una buena señal.
+                    // El script de Google ahora devuelve un objeto con un "mensaje", pero no podemos leerlo aquí.
+                    // Devolvemos un mensaje genérico de éxito que será mostrado al usuario.
+                    return { mensaje: 'Acción procesada.' };
                 } catch (error) {
-                    throw new Error('Error de conexión al enviar los datos.');
+                    throw new Error('Error de conexión.');
                 }
             }
             
             async enviarDatos(payload) {
                 return new Promise((resolve, reject) => {
                     const callbackName = 'jsonp_callback_' + Date.now();
+                    const script = document.createElement('script');
                     const timeoutId = setTimeout(() => {
                         delete window[callbackName];
                         if (script.parentNode) script.remove();
@@ -627,7 +608,6 @@
                     url.searchParams.append('data', JSON.stringify(payload));
                     url.searchParams.append('callback', callbackName);
 
-                    const script = document.createElement('script');
                     script.src = url.href;
                     script.onerror = () => {
                         clearTimeout(timeoutId);
