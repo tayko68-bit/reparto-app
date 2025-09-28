@@ -159,7 +159,7 @@
         class SistemaTrazabilidad {
             constructor() {
                 // Asegúrate de que esta URL sea la de tu última implementación
-                this.SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzL_F_ry-QPBWYMfwoG6kX8ROqUSPYiLnPX05gLa6nvMPShefhxU38n3Fb6f4Yxl2vEiQ/exec";
+                this.SCRIPT_URL = "https://script.google.com/macros/s/AKfycby-sX-W_12dJ4d_d5Xl7Xn4Pz6FvR9h4Q3e2Zk1A/exec";
                 
                 this.estado = {
                     modulo: null,
@@ -180,44 +180,35 @@
                 this.inicializarFirma();
             }
 
-            // ==========================================
-            // VINCULACIÓN DE BOTONES (CORREGIDO)
-            // ==========================================
             bindearEventos() {
-                try {
-                    // Mapeo de selectores a funciones para hacer el código más limpio
-                    const bindings = {
-                        '#btn-rol-almacen': () => { this.estado.modulo = 'almacen'; this.cambiarVista('almacen-form'); },
-                        '#btn-rol-repartidor': () => { this.estado.modulo = 'repartidor'; this.cambiarVista('repartidor-form'); },
-                        '#btn-escanear-factura': () => this.validarFormularioAlmacen() && this.iniciarScanner(),
-                        '#btn-escanear-repartidor': () => this.validarFormularioRepartidor() && this.iniciarScanner(),
-                        '.close-scanner': () => this.detenerScanner(),
-                        '.close-camara': () => this.detenerCamara(),
-                        '.capture-photo': () => this.capturarFoto(),
-                        '#btn-capturar-foto': () => this.iniciarCapturarFactura(),
-                        '#btn-limpiar-firma': () => this.limpiarFirma(),
-                        '#btn-confirmar-entrega-completa': () => this.confirmarEntregaCompleta(),
-                        '#btn-confirmar-fallo': () => this.confirmarFallo()
-                    };
+                // Mapeo de selectores a funciones para hacer el código más limpio y seguro
+                const bindings = {
+                    '#btn-rol-almacen': () => { this.estado.modulo = 'almacen'; this.cambiarVista('almacen-form'); },
+                    '#btn-rol-repartidor': () => { this.estado.modulo = 'repartidor'; this.cambiarVista('repartidor-form'); },
+                    '#btn-escanear-factura': () => this.validarFormularioAlmacen() && this.iniciarScanner(),
+                    '#btn-escanear-repartidor': () => this.validarFormularioRepartidor() && this.iniciarScanner(),
+                    '.close-scanner': () => this.detenerScanner(),
+                    '.close-camara': () => this.detenerCamara(),
+                    '.capture-photo': () => this.capturarFoto(),
+                    '#btn-capturar-foto': () => this.iniciarCapturarFactura(),
+                    '#btn-limpiar-firma': () => this.limpiarFirma(),
+                    '#btn-confirmar-entrega-completa': () => this.confirmarEntregaCompleta(),
+                    '#btn-confirmar-fallo': () => this.confirmarFallo()
+                };
 
-                    for (const selector in bindings) {
-                        const element = document.querySelector(selector);
-                        if (element) {
-                            element.addEventListener('click', bindings[selector]);
-                        } else {
-                            console.warn(`Elemento no encontrado para el selector: ${selector}`);
-                        }
+                for (const selector in bindings) {
+                    const element = document.querySelector(selector);
+                    if (element) {
+                        element.addEventListener('click', bindings[selector]);
+                    } else {
+                        // Este log ayuda a encontrar errores si un ID cambia en el futuro
+                        console.warn(`Elemento no encontrado para el selector: ${selector}`);
                     }
-
-                    // Vincular todos los botones de "volver"
-                    document.querySelectorAll('.btn-volver').forEach(btn => {
-                        btn.addEventListener('click', () => this.volverAlInicio());
-                    });
-
-                } catch (error) {
-                    console.error("Error crítico al vincular los botones:", error);
-                    alert("Error crítico al iniciar la aplicación: " + error.message);
                 }
+
+                document.querySelectorAll('.btn-volver').forEach(btn => {
+                    btn.addEventListener('click', () => this.volverAlInicio());
+                });
             }
             
             inicializarFirma() {
@@ -411,7 +402,7 @@
                 this.estado.firmaCliente = null;
             }
 
-            guardarFirma(silencioso = false) {
+            guardarFirma() {
                 const canvas = document.getElementById('firma-canvas');
                 const imageData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
                 if (!imageData.data.some(channel => channel !== 0)) {
@@ -429,7 +420,7 @@
                     btn.disabled = true;
                     btn.innerHTML = '<span class="loading-spinner"></span>Procesando...';
 
-                    this.guardarFirma(true);
+                    this.guardarFirma();
 
                     const payload = {
                         accion: 'registrar_entrega_con_evidencias',
