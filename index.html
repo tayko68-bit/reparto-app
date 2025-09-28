@@ -158,8 +158,8 @@
     <script>
         class SistemaTrazabilidad {
             constructor() {
-                // Asegúrate de que esta URL sea la de tu última implementación
-                this.SCRIPT_URL = "https://script.google.com/macros/s/AKfycby-sX-W_12dJ4d_d5Xl7Xn4Pz6FvR9h4Q3e2Zk1A/exec";
+                // URL ACTUALIZADA CON LA QUE PROPORCIONASTE
+                this.SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzL_F_ry-QPBWYMfwoG6kX8ROqUSPYiLnPX05gLa6nvMPShefhxU38n3Fb6f4Yxl2vEiQ/exec";
                 
                 this.estado = {
                     modulo: null,
@@ -181,7 +181,6 @@
             }
 
             bindearEventos() {
-                // Mapeo de selectores a funciones para hacer el código más limpio y seguro
                 const bindings = {
                     '#btn-rol-almacen': () => { this.estado.modulo = 'almacen'; this.cambiarVista('almacen-form'); },
                     '#btn-rol-repartidor': () => { this.estado.modulo = 'repartidor'; this.cambiarVista('repartidor-form'); },
@@ -200,9 +199,6 @@
                     const element = document.querySelector(selector);
                     if (element) {
                         element.addEventListener('click', bindings[selector]);
-                    } else {
-                        // Este log ayuda a encontrar errores si un ID cambia en el futuro
-                        console.warn(`Elemento no encontrado para el selector: ${selector}`);
                     }
                 }
 
@@ -612,14 +608,14 @@
                     const callbackName = 'jsonp_callback_' + Date.now();
                     const timeoutId = setTimeout(() => {
                         delete window[callbackName];
-                        script.remove();
+                        if (script.parentNode) script.remove();
                         reject(new Error('Timeout: El servidor tardó demasiado en responder'));
                     }, 20000);
 
                     window[callbackName] = (response) => {
                         clearTimeout(timeoutId);
                         delete window[callbackName];
-                        script.remove();
+                        if (script.parentNode) script.remove();
                         if (response.status === 'success') {
                             resolve(response.data);
                         } else {
@@ -633,7 +629,12 @@
 
                     const script = document.createElement('script');
                     script.src = url.href;
-                    script.onerror = () => reject(new Error('Error de red al contactar el servidor.'));
+                    script.onerror = () => {
+                        clearTimeout(timeoutId);
+                        delete window[callbackName];
+                        if (script.parentNode) script.remove();
+                        reject(new Error('Error de red al contactar el servidor.'));
+                    };
                     document.body.appendChild(script);
                 });
             }
